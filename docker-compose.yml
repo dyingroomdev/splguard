@@ -1,0 +1,34 @@
+version: "3.9"
+
+services:
+  bot:
+    build: .
+    command: ["splguard-bot"]
+    env_file: .env
+    depends_on:
+      - db
+      - redis
+
+  web:
+    build: .
+    command: ["uvicorn", "splguard.web:app", "--host", "0.0.0.0", "--port", "8101"]
+    env_file: .env
+    depends_on:
+      - db
+      - redis
+    ports:
+      - "8101:8101"
+
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: splguard
+    ports:
+      - "5432:5432"
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
