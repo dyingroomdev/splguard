@@ -10,6 +10,7 @@ from typing import Any
 import httpx
 from redis.asyncio import Redis
 from sqlalchemy import select
+from sqlalchemy.exc import ProgrammingError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -113,24 +114,28 @@ class PresaleService:
         return self._to_summary(settings_row.project_name, presale)
 
     async def _load_presale(self) -> tuple[Settings | None, Presale | None]:
-        settings_stmt = select(Settings).options(selectinload(Settings.presales)).limit(1)
-        settings_result = await self._session.execute(settings_stmt)
-        settings_row: Settings | None = settings_result.scalar_one_or_none()
-        if settings_row is None:
-            return None, None
+        try:
+            settings_stmt = select(Settings).options(selectinload(Settings.presales)).limit(1)
+            settings_result = await self._session.execute(settings_stmt)
+            settings_row: Settings | None = settings_result.scalar_one_or_none()
+            if settings_row is None:
+                return None, None
 
-        if settings_row.presales:
-            fallback = datetime.min.replace(tzinfo=timezone.utc)
-            presale = sorted(
-                settings_row.presales,
-                key=lambda p: (p.start_time or fallback, p.id),
-            )[0]
+            if settings_row.presales:
+                fallback = datetime.min.replace(tzinfo=timezone.utc)
+                presale = sorted(
+                    settings_row.presales,
+                    key=lambda p: (p.start_time or fallback, p.id),
+                )[0]
+                return settings_row, presale
+
+            presale = Presale(settings_id=settings_row.id)
+            self._session.add(presale)
+            await self._session.flush()
             return settings_row, presale
-
-        presale = Presale(settings_id=settings_row.id)
-        self._session.add(presale)
-        await self._session.flush()
-        return settings_row, presale
+        except ProgrammingError as exc:
+            logger.debug("Database tables not initialized yet: %s", exc)
+            return None, None
 
     async def update_presale(self, **fields: Any) -> PresaleSummary | None:
         settings_row, presale = await self._load_presale()
