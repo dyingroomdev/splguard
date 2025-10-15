@@ -9,6 +9,11 @@ services:
       - redis
     networks:
       - pg-network
+    healthcheck:
+      test: ["CMD-SHELL", "pgrep -f splguard-bot || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
 
   web:
     build: .
@@ -20,6 +25,11 @@ services:
       - "8101:8101"
     networks:
       - pg-network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8101/healthz || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
 
   redis:
     image: redis:7-alpine
