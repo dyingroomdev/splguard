@@ -94,7 +94,7 @@ class Presale(Base):
     )
     platform: Mapped[Optional[str]] = mapped_column(String(255))
     links: Mapped[dict[str, Any]] = mapped_column(
-        JSON, default_factory=dict, nullable=False
+        JSON, default=dict, nullable=False
     )
     hardcap: Mapped[Optional[Decimal]] = mapped_column(Numeric(18, 2))
     softcap: Mapped[Optional[Decimal]] = mapped_column(Numeric(18, 2))
@@ -102,7 +102,7 @@ class Presale(Base):
     end_time: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
     raised_so_far: Mapped[Optional[Decimal]] = mapped_column(Numeric(18, 2))
     faqs: Mapped[list[dict[str, Any]]] = mapped_column(
-        JSON, default_factory=list, nullable=False
+        JSON, default=list, nullable=False
     )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
@@ -121,15 +121,15 @@ class ModerationRule(Base):
     settings_id: Mapped[int] = mapped_column(ForeignKey("settings.id", ondelete="CASCADE"))
     link_posting_policy: Mapped[str] = mapped_column(Text, nullable=False)
     allowed_domains: Mapped[list[str]] = mapped_column(
-        ARRAY(String(255)), default_factory=list, nullable=False
+        ARRAY(String(255)), default=list, nullable=False
     )
     ad_keywords: Mapped[list[str]] = mapped_column(
-        ARRAY(String(255)), default_factory=list, nullable=False
+        ARRAY(String(255)), default=list, nullable=False
     )
     max_mentions: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     new_user_probation_duration: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     repeated_offense_thresholds: Mapped[dict[str, Any]] = mapped_column(
-        JSON, default_factory=dict, nullable=False
+        JSON, default=dict, nullable=False
     )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
@@ -153,7 +153,7 @@ class UserInfraction(Base):
     is_muted: Mapped[bool] = mapped_column(default=False, nullable=False)
     muted_until: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
     ban_history: Mapped[list[dict[str, Any]]] = mapped_column(
-        JSON, default_factory=list, nullable=False
+        JSON, default=list, nullable=False
     )
     strike_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     notes: Mapped[Optional[str]] = mapped_column(Text)
