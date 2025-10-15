@@ -29,6 +29,8 @@ class Settings(BaseSettings):
         if isinstance(value, str):
             parts = [part.strip() for part in value.split(",")]
             return [int(part) for part in parts if part]
+        if isinstance(value, int):
+            return [value]
         if isinstance(value, (list, tuple, set)):
             return [int(item) for item in value]
         raise ValueError("ADMIN_IDS must be a comma-separated string or list of integers.")
