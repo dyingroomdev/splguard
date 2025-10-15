@@ -40,7 +40,7 @@ class Settings(Base):
     website: Mapped[Optional[str]] = mapped_column(String(512))
     docs: Mapped[Optional[str]] = mapped_column(String(512))
     social_links: Mapped[dict[str, Any]] = mapped_column(
-        JSON, default_factory=dict, nullable=False
+        JSON, default=dict, nullable=False
     )
     logo: Mapped[Optional[str]] = mapped_column(String(512))
     created_at: Mapped[datetime] = mapped_column(
