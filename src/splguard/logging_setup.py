@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 import os
 
-from python_json_logger import jsonlogger
+from pythonjsonlogger import jsonlogger
 
 
 def configure_logging() -> None:
