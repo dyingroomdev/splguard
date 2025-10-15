@@ -26,7 +26,7 @@ async def _run_polling() -> None:
     configure_logging()
 
     if settings.sentry_dsn and sentry_sdk is not None:
-        sentry_sdk.init(dsn=settings.sentry_dsn, enable_asyncio=True, traces_sample_rate=0.05)
+        sentry_sdk.init(dsn=settings.sentry_dsn, traces_sample_rate=0.05)
 
     logger.info("splashield_bot_startup", extra={"version": get_version()})
 
