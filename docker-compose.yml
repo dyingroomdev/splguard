@@ -8,6 +8,8 @@ services:
     depends_on:
       - db
       - redis
+    networks:
+      - pg-network
 
   web:
     build: .
@@ -18,6 +20,8 @@ services:
       - redis
     ports:
       - "8101:8101"
+    networks:
+      - pg-network
 
   db:
     image: postgres:16-alpine
@@ -27,8 +31,16 @@ services:
       POSTGRES_DB: splguard
     ports:
       - "5432:5432"
+    networks:
+      - pg-network
 
   redis:
     image: redis:7-alpine
     ports:
       - "6379:6379"
+    networks:
+      - pg-network
+
+networks:
+  pg-network:
+    external: true

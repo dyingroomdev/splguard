@@ -38,6 +38,7 @@ docker-compose up --build
 ```
 
 This starts the bot, FastAPI health endpoint, PostgreSQL, and Redis services.
+Make sure the external Docker network `pg-network` exists (create it once with `docker network create pg-network`).
 
 ## Database & migrations
 
