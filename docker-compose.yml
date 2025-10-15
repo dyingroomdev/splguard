@@ -6,7 +6,6 @@ services:
     command: ["splguard-bot"]
     env_file: .env
     depends_on:
-      - db
       - redis
     networks:
       - pg-network
@@ -16,28 +15,16 @@ services:
     command: ["uvicorn", "splguard.web:app", "--host", "0.0.0.0", "--port", "8101"]
     env_file: .env
     depends_on:
-      - db
       - redis
     ports:
       - "8101:8101"
     networks:
       - pg-network
 
-  db:
-    image: postgres:16-alpine
-    environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: splguard
-    ports:
-      - "5432:5432"
-    networks:
-      - pg-network
-
   redis:
     image: redis:7-alpine
     ports:
-      - "6379:6379"
+      - "56379:6379"
     networks:
       - pg-network
 
