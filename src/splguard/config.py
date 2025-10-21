@@ -12,14 +12,21 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
     bot_token: str = Field(alias="BOT_TOKEN")
-    database_url: str = Field(alias="DATABASE_URL")
-    redis_url: str = Field(alias="REDIS_URL")
+    database_url: str = Field(default="sqlite+aiosqlite:///./splguard.db", alias="DATABASE_URL")
+    redis_url: str | None = Field(default=None, alias="REDIS_URL")
     owner_id: int = Field(alias="OWNER_ID")
     admin_channel_id: int | None = Field(default=None, alias="ADMIN_CHANNEL_ID")
     admin_ids: list[int] = Field(default_factory=list, alias="ADMIN_IDS")
     sentry_dsn: str | None = Field(default=None, alias="SENTRY_DSN")
     presale_api_url: str | None = Field(default=None, alias="PRESALE_API_URL")
     presale_refresh_seconds: int = Field(default=60, alias="PRESALE_REFRESH_SECONDS")
+
+    @field_validator("redis_url", mode="before")
+    @classmethod
+    def _empty_to_none(cls, value: Any) -> str | None:
+        if value in (None, "", "none", "null"):
+            return None
+        return str(value)
 
     @field_validator("admin_ids", mode="before")
     @classmethod

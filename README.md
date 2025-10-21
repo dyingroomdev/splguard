@@ -14,8 +14,8 @@ Skeleton for a Telegram moderation bot built with aiogram v3, FastAPI, SQLAlchem
 | Variable      | Description                                |
 | ------------- | ------------------------------------------ |
 | `BOT_TOKEN`   | Telegram bot token from BotFather.         |
-| `DATABASE_URL`| PostgreSQL DSN (e.g. `postgresql+asyncpg://`). |
-| `REDIS_URL`   | Redis connection URL.                      |
+| `DATABASE_URL`| Database DSN. Defaults to `sqlite+aiosqlite:///./splguard.db` for local development. |
+| `REDIS_URL`   | Redis connection URL. Leave empty to disable Redis-dependent features locally.                      |
 | `OWNER_ID`    | Telegram user ID of the bot owner.         |
 | `ADMIN_CHANNEL_ID` | Channel/chat ID for moderation audit logs. |
 | `ADMIN_IDS` | Comma-separated list of Telegram user IDs allowed to run admin commands. |
