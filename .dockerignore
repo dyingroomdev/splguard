@@ -29,8 +29,10 @@ env/
 .git/
 .gitignore
 
-# Documentation
-*.md
+# Documentation (except README.md which is needed for pip install)
+# *.md  <-- Commented out to allow README.md
+DEPLOYMENT.md
+INSTALL_SUMMARY.md
 docs/
 
 # Testing

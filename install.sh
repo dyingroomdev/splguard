@@ -62,12 +62,19 @@ if ! command -v docker &> /dev/null; then
 fi
 print_success "Docker is installed"
 
-if ! command -v docker-compose &> /dev/null && ! docker compose version &> /dev/null; then
+if ! command -v docker-compose &> /dev/null && ! docker compose version &> /dev/null 2>&1; then
     print_error "Docker Compose is not installed. Please install Docker Compose first:"
     print_info "https://docs.docker.com/compose/install/"
     exit 1
 fi
-print_success "Docker Compose is installed"
+
+# Detect which docker-compose command to use
+if command -v docker-compose &> /dev/null; then
+    DOCKER_COMPOSE="docker-compose"
+else
+    DOCKER_COMPOSE="docker compose"
+fi
+print_success "Docker Compose is installed ($DOCKER_COMPOSE)"
 
 # Step 2: Create .env file
 print_info "Step 2/6: Setting up environment configuration..."
@@ -109,7 +116,7 @@ fi
 
 # Step 3: Build Docker images
 print_info "Step 3/6: Building Docker images..."
-docker-compose build
+$DOCKER_COMPOSE build
 print_success "Docker images built successfully"
 
 # Step 4: Initialize database
@@ -132,7 +139,7 @@ fi
 
 # Run migrations
 print_info "Running database migrations..."
-docker-compose run --rm bot alembic upgrade head
+$DOCKER_COMPOSE run --rm bot alembic upgrade head
 print_success "Database migrations completed"
 
 # Step 5: Populate initial data
@@ -257,13 +264,13 @@ if __name__ == "__main__":
     asyncio.run(populate_data())
 EOF
 
-docker-compose run --rm bot python /tmp/populate_initial_data.py
+$DOCKER_COMPOSE run --rm bot python /tmp/populate_initial_data.py
 print_success "Initial data populated"
 
 # Step 6: Start the bot
 print_info "Step 6/6: Starting the bot..."
 
-docker-compose up -d
+$DOCKER_COMPOSE up -d
 print_success "Bot started successfully!"
 
 # Final status check
@@ -275,11 +282,11 @@ echo "Your SPL Shield bot is now running!"
 echo -e "${NC}"
 
 print_info "Useful commands:"
-echo "  • View logs:       docker-compose logs -f bot"
-echo "  • Stop bot:        docker-compose stop"
-echo "  • Restart bot:     docker-compose restart"
-echo "  • Update code:     git pull && docker-compose up -d --build"
-echo "  • View status:     docker-compose ps"
+echo "  • View logs:       $DOCKER_COMPOSE logs -f bot"
+echo "  • Stop bot:        $DOCKER_COMPOSE stop"
+echo "  • Restart bot:     $DOCKER_COMPOSE restart"
+echo "  • Update code:     git pull && $DOCKER_COMPOSE up -d --build"
+echo "  • View status:     $DOCKER_COMPOSE ps"
 echo ""
 
 print_info "Next steps:"
@@ -289,7 +296,7 @@ echo "  3. Test the bot by messaging it on Telegram"
 echo ""
 
 print_warning "Check logs to ensure the bot started correctly:"
-echo "  docker-compose logs -f bot"
+echo "  $DOCKER_COMPOSE logs -f bot"
 echo ""
 
 print_success "Installation completed successfully!"

@@ -12,6 +12,13 @@ if ! command -v docker &> /dev/null; then
     exit 1
 fi
 
+# Detect docker-compose command
+if command -v docker-compose &> /dev/null; then
+    DC="docker-compose"
+else
+    DC="docker compose"
+fi
+
 # Check .env
 if [ ! -f .env ]; then
     echo "📝 Creating .env from template..."
@@ -30,15 +37,15 @@ fi
 
 # Build and start
 echo "🔨 Building and starting bot..."
-docker-compose up -d --build
+$DC up -d --build
 
 # Run migrations
 echo "📊 Running database migrations..."
-docker-compose run --rm bot alembic upgrade head
+$DC run --rm bot alembic upgrade head
 
 echo ""
 echo "✅ Bot started!"
 echo ""
-echo "📋 View logs:  docker-compose logs -f bot"
-echo "🛑 Stop bot:   docker-compose stop"
+echo "📋 View logs:  $DC logs -f bot"
+echo "🛑 Stop bot:   $DC stop"
 echo ""
