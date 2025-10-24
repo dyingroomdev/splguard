@@ -7,9 +7,8 @@ Create Date: 2024-05-04 00:00:00.000000
 
 from __future__ import annotations
 
-from alembic import op
 import sqlalchemy as sa
-from sqlalchemy.dialects import postgresql
+from alembic import op
 
 # revision identifiers, used by Alembic.
 revision = "20240504_0001"
@@ -18,26 +17,26 @@ branch_labels = None
 depends_on = None
 
 
-presale_status = sa.Enum("upcoming", "active", "ended", name="presale_status")
-
-
 def upgrade() -> None:
-    presale_status.create(op.get_bind(), checkfirst=True)
-
     op.create_table(
         "settings",
         sa.Column("id", sa.Integer(), primary_key=True),
         sa.Column("project_name", sa.String(length=255), nullable=False),
         sa.Column("token_ticker", sa.String(length=32), nullable=False),
-        sa.Column("contract_addresses", postgresql.ARRAY(sa.String(length=128)), nullable=False),
+        sa.Column(
+            "contract_addresses",
+            sa.JSON(),
+            nullable=False,
+            server_default=sa.text("'[]'"),
+        ),
         sa.Column("explorer_url", sa.String(length=512), nullable=True),
         sa.Column("website", sa.String(length=512), nullable=True),
         sa.Column("docs", sa.String(length=512), nullable=True),
         sa.Column(
             "social_links",
-            postgresql.JSONB(astext_type=sa.Text()),
+            sa.JSON(),
             nullable=False,
-            server_default=sa.text("'{}'::jsonb"),
+            server_default=sa.text("'{}'"),
         ),
         sa.Column("logo", sa.String(length=512), nullable=True),
         sa.Column(
@@ -66,23 +65,23 @@ def upgrade() -> None:
         sa.Column("link_posting_policy", sa.Text(), nullable=False),
         sa.Column(
             "allowed_domains",
-            postgresql.ARRAY(sa.String(length=255)),
+            sa.JSON(),
             nullable=False,
-            server_default=sa.text("'{}'::text[]"),
+            server_default=sa.text("'[]'"),
         ),
         sa.Column(
             "ad_keywords",
-            postgresql.ARRAY(sa.String(length=255)),
+            sa.JSON(),
             nullable=False,
-            server_default=sa.text("'{}'::text[]"),
+            server_default=sa.text("'[]'"),
         ),
         sa.Column("max_mentions", sa.Integer(), server_default="0", nullable=False),
         sa.Column("new_user_probation_duration", sa.Integer(), server_default="0", nullable=False),
         sa.Column(
             "repeated_offense_thresholds",
-            postgresql.JSONB(astext_type=sa.Text()),
+            sa.JSON(),
             nullable=False,
-            server_default=sa.text("'{}'::jsonb"),
+            server_default=sa.text("'{}'"),
         ),
         sa.Column(
             "created_at",
@@ -109,16 +108,16 @@ def upgrade() -> None:
         ),
         sa.Column(
             "status",
-            presale_status,
+            sa.Enum("upcoming", "active", "ended", name="presale_status", native_enum=False),
             nullable=False,
             server_default="upcoming",
         ),
         sa.Column("platform", sa.String(length=255), nullable=True),
         sa.Column(
             "links",
-            postgresql.JSONB(astext_type=sa.Text()),
+            sa.JSON(),
             nullable=False,
-            server_default=sa.text("'{}'::jsonb"),
+            server_default=sa.text("'{}'"),
         ),
         sa.Column("hardcap", sa.Numeric(18, 2), nullable=True),
         sa.Column("softcap", sa.Numeric(18, 2), nullable=True),
@@ -127,9 +126,9 @@ def upgrade() -> None:
         sa.Column("raised_so_far", sa.Numeric(18, 2), nullable=True),
         sa.Column(
             "faqs",
-            postgresql.JSONB(astext_type=sa.Text()),
+            sa.JSON(),
             nullable=False,
-            server_default=sa.text("'[]'::jsonb"),
+            server_default=sa.text("'[]'"),
         ),
         sa.Column(
             "created_at",
@@ -190,9 +189,9 @@ def upgrade() -> None:
         sa.Column("muted_until", sa.DateTime(timezone=True), nullable=True),
         sa.Column(
             "ban_history",
-            postgresql.JSONB(astext_type=sa.Text()),
+            sa.JSON(),
             nullable=False,
-            server_default=sa.text("'[]'::jsonb"),
+            server_default=sa.text("'[]'"),
         ),
         sa.Column("strike_count", sa.Integer(), server_default="0", nullable=False),
         sa.Column("notes", sa.Text(), nullable=True),
@@ -224,4 +223,3 @@ def downgrade() -> None:
     op.drop_table("presales")
     op.drop_table("moderation_rules")
     op.drop_table("settings")
-    presale_status.drop(op.get_bind(), checkfirst=True)

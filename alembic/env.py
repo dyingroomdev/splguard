@@ -4,7 +4,7 @@ import asyncio
 from logging.config import fileConfig
 
 from alembic import context
-from sqlalchemy import pool
+from sqlalchemy import create_engine, pool
 from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
 
@@ -51,11 +51,21 @@ def do_run_migrations(connection: Connection) -> None:
 
 async def run_migrations_online() -> None:
     """Run migrations in 'online' mode."""
+    url = get_database_url()
+
+    if url.startswith("sqlite+aiosqlite"):
+        sync_url = url.replace("sqlite+aiosqlite", "sqlite", 1)
+        connectable = create_engine(sync_url, poolclass=pool.NullPool)
+        with connectable.connect() as connection:
+            do_run_migrations(connection)
+        connectable.dispose()
+        return
+
     connectable = async_engine_from_config(
         config.get_section(config.config_ini_section) or {},
         prefix="sqlalchemy.",
         poolclass=pool.NullPool,
-        url=get_database_url(),
+        url=url,
     )
 
     async with connectable.connect() as connection:

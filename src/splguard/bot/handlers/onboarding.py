@@ -1,8 +1,5 @@
 from __future__ import annotations
 
-import asyncio
-from contextlib import suppress
-
 from aiogram import Router
 from aiogram.enums import ChatMemberStatus, ParseMode
 from aiogram.types import CallbackQuery, ChatMemberUpdated, InlineKeyboardButton, InlineKeyboardMarkup, Message
@@ -18,19 +15,9 @@ from ...utils import markdown as md
 
 router = Router(name="onboarding")
 
-WELCOME_DELETE_AFTER = 60
-
-
-async def _schedule_delete(message: Message) -> None:
-    async def _delete_later() -> None:
-        await asyncio.sleep(WELCOME_DELETE_AFTER)
-        with suppress(Exception):
-            await message.delete()
-
-    asyncio.create_task(_delete_later())
-
 
 def _welcome_keyboard(website_url: str | None, presale_url: str | None) -> InlineKeyboardMarkup:
+    # Row 1: Contract and Presale
     first_row = [
         InlineKeyboardButton(text="🧾 Contract", callback_data="welcome:contract"),
         InlineKeyboardButton(
@@ -40,29 +27,44 @@ def _welcome_keyboard(website_url: str | None, presale_url: str | None) -> Inlin
         if presale_url
         else InlineKeyboardButton(text="💰 Presale", callback_data="welcome:presale"),
     ]
+
+    # Row 2: Website and Official Links
     second_row = [
-        InlineKeyboardButton(text="🌐 Website", url=website_url)
-        if website_url
-        else InlineKeyboardButton(text="🌐 Website", callback_data="welcome:links"),
+        InlineKeyboardButton(text="🌐 Website", url="https://splshield.com/"),
         InlineKeyboardButton(text="📢 Official Links", callback_data="welcome:links"),
     ]
-    return InlineKeyboardMarkup(inline_keyboard=[first_row, second_row])
+
+    # Row 3: Support and Risk Scanner Bot
+    third_row = [
+        InlineKeyboardButton(text="🆘 Support", url="https://t.me/splsupportbot"),
+        InlineKeyboardButton(text="🤖 Risk Scanner Bot", url="https://t.me/splshieldbot"),
+    ]
+
+    # Row 4: Dapp and Twitter
+    fourth_row = [
+        InlineKeyboardButton(text="🔷 Dapp", url="https://ex.splshield.com"),
+        InlineKeyboardButton(text="🐦 Twitter", url="https://twitter.com/splshield"),
+    ]
+
+    return InlineKeyboardMarkup(inline_keyboard=[first_row, second_row, third_row, fourth_row])
 
 
 def _welcome_text(username: str | None) -> str:
     greeting_name = username or "friend"
     return md.join_lines(
         [
-            f"👋 Welcome to {md.bold('SPL Shield')}, {md.escape_md(greeting_name)}!",
+            f"👋 Welcome to {md.bold('SPL Shield')}, {md.escape_md(greeting_name)}{md.escape_md('!')}",
             "",
-            "We are building the first AI powered Solana risk scanner 🛡️",
+            md.escape_md("We are building the first AI powered Solana risk scanner 🛡️"),
             "",
             md.bold("Quick actions"),
-            "💰 Presale · join while spots remain",
-            "🧾 Contract · verify before you trade",
-            "🌐 Links · stay on official channels",
+            md.escape_md("💰 Presale · join while spots remain"),
+            md.escape_md("🧾 Contract · verify before you trade"),
+            md.escape_md("🌐 Links · stay on official channels"),
             "",
-            "Please avoid unsolicited links or ads — spam gets removed instantly.",
+            f"{md.escape_md('⚠️ Please avoid unsolicited links or ads')} {md.escape_md('—')} {md.escape_md('spam gets removed instantly.')}",
+            "",
+            f"{md.escape_md('💡 For help, use')} {md.inline_code('/commands')} {md.escape_md('to see all available bot commands.')}",
         ]
     )
 
@@ -100,7 +102,7 @@ async def handle_member_update(
         reply_markup=_welcome_keyboard(website_url, presale_url),
         parse_mode=ParseMode.MARKDOWN_V2,
     )
-    await _schedule_delete(message)
+    # Welcome message stays permanently (no auto-delete)
     metrics_increment("new_members.welcomed")
 
     moderation = ModerationService(session, redis)
@@ -153,7 +155,10 @@ async def _send_contract_block(
     content_service = ContentService(session=session, redis=redis)
     payload = await content_service.get_settings_payload()
     if not payload or not payload.get("contract_addresses"):
-        await callback.message.answer("Contract details are not configured yet.")
+        await callback.message.answer(
+            md.escape_md("Contract details are not configured yet."),
+            parse_mode=ParseMode.MARKDOWN_V2
+        )
         return
     text = render_contract_block(
         addresses=payload["contract_addresses"],
@@ -162,7 +167,10 @@ async def _send_contract_block(
         explorer_url=payload.get("explorer_url"),
     )
     if not text.strip():
-        await callback.message.answer("Contract details are not available.")
+        await callback.message.answer(
+            md.escape_md("Contract details are not available."),
+            parse_mode=ParseMode.MARKDOWN_V2
+        )
         return
     await callback.message.answer(text, parse_mode=ParseMode.MARKDOWN_V2, disable_web_page_preview=True)
 
@@ -172,22 +180,37 @@ async def _send_presale_block(
     session: AsyncSession,
     redis: Redis | None,
 ) -> None:
+    # Try to get presale info from database
     presale_service = PresaleService(session, redis)
     summary = await presale_service.get_summary(refresh_external=False)
-    if summary is None:
-        await callback.message.answer("Presale information is not available.")
+
+    # If database has presale info, use it
+    if summary is not None:
+        text = render_presale_block(
+            status=summary.status,
+            project_name=summary.project_name,
+            platform=summary.platform,
+            link=summary.primary_link,
+            hardcap=summary.hardcap,
+            softcap=summary.softcap,
+            raised=summary.raised_so_far,
+            start_time=summary.start_time,
+            end_time=summary.end_time,
+        )
+        await callback.message.answer(text, parse_mode=ParseMode.MARKDOWN_V2, disable_web_page_preview=True)
         return
-    text = render_presale_block(
-        status=summary.status,
-        project_name=summary.project_name,
-        platform=summary.platform,
-        link=summary.primary_link,
-        hardcap=summary.hardcap,
-        softcap=summary.softcap,
-        raised=summary.raised_so_far,
-        start_time=summary.start_time,
-        end_time=summary.end_time,
-    )
+
+    # Otherwise, show default presale information
+    text = md.join_lines([
+        f"{md.bold('$TDL Presale')}",
+        "",
+        f"{md.bold('💰 Presale Details')}",
+        f"{md.escape_md('📅 Start:')} {md.escape_md('6 PM UTC (00+), 26th Oct 2025')}",
+        f"{md.escape_md('💵 Price:')} {md.escape_md('$0.002 per TDL')}",
+        f"{md.escape_md('📊 Supply:')} {md.escape_md('1B TDL')}",
+        "",
+        md.escape_md("Join early to secure your position before the whitelist ends!"),
+    ])
     await callback.message.answer(text, parse_mode=ParseMode.MARKDOWN_V2, disable_web_page_preview=True)
 
 
@@ -196,15 +219,29 @@ async def _send_links_block(
     session: AsyncSession,
     redis: Redis | None,
 ) -> None:
+    # Default official links
+    links = {
+        "Website": "https://splshield.com/",
+        "Risk Scanner App": "https://app.splshield.com/",
+        "Dapp": "https://ex.splshield.com",
+        "Documentation": "https://docs.splshield.com/",
+        "Twitter": "https://twitter.com/splshield",
+    }
+
+    # Try to get additional links from database
     content_service = ContentService(session=session, redis=redis)
     payload = await content_service.get_settings_payload()
-    if not payload:
-        await callback.message.answer("Official links are not configured yet.")
-        return
-    links = {
-        "Website": payload.get("website"),
-        "Docs": payload.get("docs"),
-        **(payload.get("social_links") or {}),
-    }
-    text = render_links_block({k: v for k, v in links.items() if v})
+    if payload:
+        # Override with database values if present
+        if payload.get("website"):
+            links["Website"] = payload["website"]
+        if payload.get("docs"):
+            links["Documentation"] = payload["docs"]
+        # Add any additional social links
+        social_links = payload.get("social_links") or {}
+        for key, value in social_links.items():
+            if value and key not in links:
+                links[key] = value
+
+    text = render_links_block(links)
     await callback.message.answer(text, parse_mode=ParseMode.MARKDOWN_V2, disable_web_page_preview=True)

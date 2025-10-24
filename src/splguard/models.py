@@ -5,19 +5,7 @@ from datetime import datetime
 from decimal import Decimal
 from typing import Any, Optional
 
-from sqlalchemy import (
-    ARRAY,
-    JSON,
-    BigInteger,
-    DateTime,
-    Enum,
-    ForeignKey,
-    Integer,
-    Numeric,
-    String,
-    Text,
-    func,
-)
+from sqlalchemy import JSON, BigInteger, DateTime, Enum, ForeignKey, Integer, Numeric, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .db import Base
@@ -35,13 +23,11 @@ class Settings(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     project_name: Mapped[str] = mapped_column(String(255), nullable=False)
     token_ticker: Mapped[str] = mapped_column(String(32), nullable=False)
-    contract_addresses: Mapped[list[str]] = mapped_column(ARRAY(String(128)), nullable=False)
+    contract_addresses: Mapped[list[str]] = mapped_column(JSON, default=list, nullable=False)
     explorer_url: Mapped[Optional[str]] = mapped_column(String(512))
     website: Mapped[Optional[str]] = mapped_column(String(512))
     docs: Mapped[Optional[str]] = mapped_column(String(512))
-    social_links: Mapped[dict[str, Any]] = mapped_column(
-        JSON, default=dict, nullable=False
-    )
+    social_links: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict, nullable=False)
     logo: Mapped[Optional[str]] = mapped_column(String(512))
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
@@ -73,6 +59,7 @@ class TeamMember(Base):
     role: Mapped[str] = mapped_column(String(255), nullable=False)
     contact: Mapped[Optional[str]] = mapped_column(String(255))
     avatar_url: Mapped[Optional[str]] = mapped_column(String(512))
+    bio: Mapped[Optional[str]] = mapped_column(Text)
     display_order: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
@@ -90,20 +77,18 @@ class Presale(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     settings_id: Mapped[int] = mapped_column(ForeignKey("settings.id", ondelete="CASCADE"))
     status: Mapped[PresaleStatus] = mapped_column(
-        Enum(PresaleStatus, name="presale_status"), default=PresaleStatus.UPCOMING, nullable=False
+        Enum(PresaleStatus, name="presale_status", native_enum=False),
+        default=PresaleStatus.UPCOMING,
+        nullable=False,
     )
     platform: Mapped[Optional[str]] = mapped_column(String(255))
-    links: Mapped[dict[str, Any]] = mapped_column(
-        JSON, default=dict, nullable=False
-    )
+    links: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict, nullable=False)
     hardcap: Mapped[Optional[Decimal]] = mapped_column(Numeric(18, 2))
     softcap: Mapped[Optional[Decimal]] = mapped_column(Numeric(18, 2))
     start_time: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
     end_time: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
     raised_so_far: Mapped[Optional[Decimal]] = mapped_column(Numeric(18, 2))
-    faqs: Mapped[list[dict[str, Any]]] = mapped_column(
-        JSON, default=list, nullable=False
-    )
+    faqs: Mapped[list[dict[str, Any]]] = mapped_column(JSON, default=list, nullable=False)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
@@ -120,12 +105,8 @@ class ModerationRule(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     settings_id: Mapped[int] = mapped_column(ForeignKey("settings.id", ondelete="CASCADE"))
     link_posting_policy: Mapped[str] = mapped_column(Text, nullable=False)
-    allowed_domains: Mapped[list[str]] = mapped_column(
-        ARRAY(String(255)), default=list, nullable=False
-    )
-    ad_keywords: Mapped[list[str]] = mapped_column(
-        ARRAY(String(255)), default=list, nullable=False
-    )
+    allowed_domains: Mapped[list[str]] = mapped_column(JSON, default=list, nullable=False)
+    ad_keywords: Mapped[list[str]] = mapped_column(JSON, default=list, nullable=False)
     max_mentions: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     new_user_probation_duration: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     repeated_offense_thresholds: Mapped[dict[str, Any]] = mapped_column(

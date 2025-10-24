@@ -277,9 +277,11 @@ class ModerationService:
     ) -> bool:
         now = datetime.now(timezone.utc)
         record = await self._get_user_record(profile, user_id)
-        if record and record.probation_until and record.probation_until > now:
+        # SQLite stores datetimes as naive, so we need to make them timezone-aware
+        probation_until = record.probation_until.replace(tzinfo=timezone.utc) if record and record.probation_until and record.probation_until.tzinfo is None else record.probation_until if record else None
+        if record and probation_until and probation_until > now:
             if self._redis is not None:
-                ttl = int((record.probation_until - now).total_seconds())
+                ttl = int((probation_until - now).total_seconds())
                 if ttl > 0:
                     await self._redis.set(f"probation:{chat_id}:{user_id}", "1", ex=ttl)
             return True

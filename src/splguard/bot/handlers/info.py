@@ -60,14 +60,41 @@ async def handle_help(message: Message, session: AsyncSession, redis: Redis | No
         return
     metrics_increment("command_usage.help")
 
-    service = _content_service(session, redis)
-    payload = await service.get_settings_payload()
-
     intro = md.escape_md(gettext("help.intro"))
-    links = payload["social_links"] if payload else {}
-    keyboard = _build_links_keyboard(links) if links else None
+
+    # Add support bot button
+    keyboard = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="🆘 Contact Support", url="https://t.me/splsupportbot")]
+    ])
 
     await message.answer(intro, parse_mode=ParseMode.MARKDOWN_V2, reply_markup=keyboard)
+
+
+@router.message(Command("commands"))
+async def handle_commands(message: Message, session: AsyncSession, redis: Redis | None) -> None:
+    if await _rate_limited(message, redis, "commands"):
+        return
+    metrics_increment("command_usage.commands")
+
+    text = md.join_lines([
+        f"{md.bold('📋 Available Commands')}",
+        "",
+        f"{md.bold('👥 Public Commands')}",
+        f"{md.inline_code('/help')} {md.escape_md('- Get help and information')}",
+        f"{md.inline_code('/team')} {md.escape_md('- View core team members')}",
+        f"{md.inline_code('/contract')} {md.escape_md('- View token contract details')}",
+        f"{md.inline_code('/presale')} {md.escape_md('- View presale information')}",
+        f"{md.inline_code('/links')} {md.escape_md('- View all official links')}",
+        f"{md.inline_code('/status')} {md.escape_md('- View bot status and metrics')}",
+        f"{md.inline_code('/ping')} {md.escape_md('- Check if bot is online')}",
+        "",
+        f"{md.bold('🔐 Admin Commands')}",
+        f"{md.inline_code('/admin')} {md.escape_md('- Admin control panel (admins only)')}",
+        "",
+        f"{md.escape_md('💡 Tip: Click any command to use it!')}",
+    ])
+
+    await message.answer(text, parse_mode=ParseMode.MARKDOWN_V2)
 
 
 @router.message(Command("team"))

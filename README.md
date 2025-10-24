@@ -1,13 +1,46 @@
-# SplGuard
+# 🛡️ SPL Shield Bot
 
-Skeleton for a Telegram moderation bot built with aiogram v3, FastAPI, SQLAlchemy, and Redis.
+A Telegram moderation and community management bot for SPL Shield, built with aiogram v3, FastAPI, SQLAlchemy, and Redis.
 
-## Quickstart
+## 🚀 Quick Start with Docker (Recommended)
 
-1. Copy `.env.example` to `.env` and fill in your credentials.
-2. Create a virtual environment and install dependencies with `make dev`.
-3. Run the bot locally using `splguard-bot` or `python -m splguard`.
-4. Optional: start the FastAPI health server with `uvicorn splguard.web:app --reload`.
+**One-command installation:**
+
+```bash
+./install.sh
+```
+
+This will:
+- Check dependencies (Docker, Docker Compose)
+- Create `.env` configuration
+- Build Docker images
+- Initialize database with migrations
+- Populate initial data (team, presale, settings)
+- Start the bot
+
+**Manual Docker start:**
+
+```bash
+# 1. Copy and configure .env
+cp .env.example .env
+nano .env  # Add your BOT_TOKEN
+
+# 2. Start with Docker Compose
+docker-compose up -d
+
+# 3. View logs
+docker-compose logs -f bot
+```
+
+See [DEPLOYMENT.md](DEPLOYMENT.md) for detailed deployment guide.
+
+## 💻 Local Development (Without Docker)
+
+1. Copy `.env.example` to `.env` and fill in your credentials
+2. Create a virtual environment and install dependencies with `make dev`
+3. Run database migrations: `alembic upgrade head`
+4. Start the bot: `splguard-bot` or `python -m splguard`
+5. Optional: start the FastAPI health server with `uvicorn splguard.web:app --reload`
 
 ## Environment Variables
 

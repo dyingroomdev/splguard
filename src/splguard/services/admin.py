@@ -174,10 +174,12 @@ class AdminService:
     async def export_logs(self, days: int) -> list[dict[str, str]]:
         if days <= 0:
             raise ValueError("Days must be a positive integer.")
+        # SQLite stores datetimes as naive, so we use a naive cutoff for comparison
         cutoff = datetime.now(timezone.utc) - timedelta(days=days)
+        cutoff_naive = cutoff.replace(tzinfo=None)
         stmt = (
             select(UserInfraction)
-            .where(UserInfraction.updated_at >= cutoff)
+            .where(UserInfraction.updated_at >= cutoff_naive)
             .order_by(UserInfraction.updated_at.desc())
             .limit(100)
         )

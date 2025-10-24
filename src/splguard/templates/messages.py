@@ -32,19 +32,28 @@ def _role_badge(role: str | None) -> str:
 
 
 def render_team_cards(members: Iterable[Mapping[str, str | int | None]]) -> str:
-    lines: list[str] = [md.bold(f"{BRAND_HEADER_EMOJI} Core Team"), ""]
+    lines: list[str] = [md.bold(f"{BRAND_HEADER_EMOJI} SPL Shield Core Team"), ""]
     for member in members:
         name = md.bold(md.escape_md(str(member.get("name", "Unknown"))))
         role = _role_badge(member.get("role"))
         contact = member.get("contact")
+        bio = member.get("bio")
+
         lines.append(_format_line(f"{TEAM_MEMBER_EMOJI} {name}"))
         if role:
             lines.append(_format_line(f"   {role}"))
+        if bio:
+            lines.append(_format_line(f"   {md.escape_md(str(bio))}"))
         if contact:
             lines.append(_format_line(f"   {CONTACT_EMOJI} {md.escape_md(str(contact))}"))
         lines.append("")
     if lines and lines[-1] == "":
         lines.pop()
+
+    # Add footer
+    lines.append("")
+    lines.append(md.escape_md("💠 Together, they lead SPL Shield — the AI-powered Solana Risk Scanner and home of $TDL, our ecosystem utility token powering risk analysis, staking, and governance."))
+
     return md.join_lines(lines)
 
 
@@ -87,9 +96,8 @@ def render_presale_block(
 ) -> str:
     status_key = status.lower()
     status_label = f"{STATUS_EMOJI.get(status_key, '🟣')} {status_key.title()}"
-    heading = f"{BRAND_HEADER_EMOJI} Presale"
-    if project_name:
-        heading = f"{heading} · {md.escape_md(project_name)}"
+    # Always show $TDL Presale as the heading
+    heading = f"{BRAND_HEADER_EMOJI} {md.escape_md('$TDL Presale')}"
     lines: list[str] = [
         md.bold(heading),
         f"Status: {md.escape_md(status_label)}",

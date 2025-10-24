@@ -3,14 +3,13 @@ from __future__ import annotations
 _TRANSLATIONS: dict[str, dict[str, str]] = {
     "en": {
         "help.intro": (
-            "SPL Shield keeps your community safe.\n"
+            "Need help? Our support team is here to assist you!\n\n"
             "Available commands:\n"
-            "/start - show introduction\n"
-            "/help - this help screen\n"
             "/team - view the core contributors\n"
             "/contract - display token details\n"
-            "/presale - presale status and FAQ\n"
-            "/links - official resources"
+            "/presale - presale status and information\n"
+            "/links - official resources\n\n"
+            "For direct support, contact our support bot below."
         ),
         "start.intro": (
             "Welcome to SPL Shield\\! Choose an option below to learn more about the project."

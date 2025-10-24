@@ -97,6 +97,7 @@ class ContentService:
             "role": member.role,
             "contact": member.contact,
             "avatar_url": member.avatar_url,
+            "bio": member.bio,
             "display_order": member.display_order,
         }
 

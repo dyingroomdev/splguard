@@ -32,7 +32,7 @@ async def _run_polling() -> None:
 
     bot = Bot(
         token=settings.bot_token,
-        default=DefaultBotProperties(parse_mode=ParseMode.MARKDOWN_V2),
+        default=DefaultBotProperties(parse_mode=None),
     )
     dp = Dispatcher()
     db_middleware = DatabaseSessionMiddleware()
