@@ -88,9 +88,6 @@ async def handle_commands(message: Message, session: AsyncSession, redis: Redis 
         f"{md.inline_code('/status')} {md.escape_md('- View bot status and metrics')}",
         f"{md.inline_code('/ping')} {md.escape_md('- Check if bot is online')}",
         "",
-        f"{md.bold('🔐 Admin Commands')}",
-        f"{md.inline_code('/admin')} {md.escape_md('- Admin control panel (admins only)')}",
-        "",
         f"{md.escape_md('💡 Tip: Click any command to use it!')}",
     ])
 

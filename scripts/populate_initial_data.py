@@ -3,6 +3,7 @@
 import asyncio
 import sys
 from datetime import datetime, timezone
+from decimal import Decimal
 
 sys.path.insert(0, '/app/src')
 
@@ -99,6 +100,8 @@ async def populate_data():
                 platform="SPL Shield Platform",
                 links={"presale": "https://presale.splshield.com/"},
                 start_time=datetime(2025, 10, 26, 18, 0, 0, tzinfo=timezone.utc),
+                hardcap=Decimal('500000'),
+                softcap=Decimal('250000'),
                 faqs=[
                     {"question": "What is the presale price?", "answer": "$0.002 per TDL"},
                     {"question": "What is the total supply?", "answer": "1 Billion TDL tokens"},
