@@ -27,8 +27,8 @@ async def populate_data():
             settings = Settings(
                 project_name="SPL Shield",
                 token_ticker="TDL",
-                contract_addresses=["TDLTokenAddressWillBeProvidedSoon"],
-                explorer_url="https://solscan.io/token/TDLTokenAddressWillBeProvidedSoon",
+                contract_addresses=["tdLS6cTi91yLm5BD5H2Ky5Wbs5YeTTHBqfGKjQX2hoz"],
+                explorer_url="https://solscan.io/token/tdLS6cTi91yLm5BD5H2Ky5Wbs5YeTTHBqfGKjQX2hoz",
                 website="https://splshield.com/",
                 docs="https://docs.splshield.com/",
                 social_links={
