@@ -29,12 +29,14 @@ def test_contract_block_contains_counter_and_link() -> None:
         addresses=["So11111111111111111111111111111111111111112"],
         chain="Solana",
         token_ticker="SPLG",
+        supply="10B",
         explorer_url="https://solscan.io/token/So1111",
     )
 
     assert "SPLG" in text
     assert "https://" in text
     assert "1\\)" in text
+    assert "10B" in text
     _assert_line_lengths(text)
 
 

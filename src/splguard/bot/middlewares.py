@@ -15,6 +15,7 @@ from ..db import AsyncSessionMaker
 from ..redis import get_redis_client
 from ..metrics import increment as metrics_increment
 from ..services.moderation import ModerationAction, ModerationService
+from ..services import zealy as zealy_service
 from ..utils import markdown as md
 from ..utils.detection import (
     ad_keyword_score,
@@ -26,6 +27,10 @@ from ..utils.detection import (
 
 Handler = Callable[[Any, Dict[str, Any]], Awaitable[Any]]
 logger = logging.getLogger(__name__)
+
+PREMIUM_COMMAND_TIERS = {
+    "/submit": "wl",
+}
 
 if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import AsyncSession
@@ -79,6 +84,33 @@ class ModerationMiddleware(BaseMiddleware):
 
         if await service.is_trusted(profile, user_id):
             return await handler(event, data)
+
+        text_content = event.text or event.caption or ""
+        if text_content.startswith("/"):
+            command = text_content.split()[0].lower()
+            required_tier = PREMIUM_COMMAND_TIERS.get(command)
+            if required_tier:
+                member = await zealy_service.get_member(session, user_id)
+                current_rank = zealy_service.tier_rank(member.tier if member else None)
+                required_rank = zealy_service.tier_rank(required_tier)
+                if current_rank < required_rank:
+                    hint = zealy_service.tier_label(required_tier)
+                    try:
+                        await event.answer(
+                            md.join_lines(
+                                [
+                                    md.bold("Access denied"),
+                                    md.escape_md(
+                                        f"This command requires {hint} tier. Complete more quests to upgrade."
+                                    ),
+                                ]
+                            ),
+                            parse_mode=ParseMode.MARKDOWN_V2,
+                        )
+                    except (TelegramBadRequest, TelegramForbiddenError):
+                        logger.debug("Unable to send premium block notice in chat %s", event.chat.id)
+                    metrics_increment("premium_command.blocked")
+                    return None
 
         probation_active = await service.is_user_in_probation(
             profile=profile,

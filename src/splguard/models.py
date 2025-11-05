@@ -5,7 +5,19 @@ from datetime import datetime
 from decimal import Decimal
 from typing import Any, Optional
 
-from sqlalchemy import JSON, BigInteger, DateTime, Enum, ForeignKey, Integer, Numeric, String, Text, func
+from sqlalchemy import (
+    JSON,
+    BigInteger,
+    DateTime,
+    Enum,
+    ForeignKey,
+    Integer,
+    Numeric,
+    String,
+    Text,
+    UniqueConstraint,
+    func,
+)
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .db import Base
@@ -148,3 +160,80 @@ class UserInfraction(Base):
     )
 
     settings: Mapped[Settings] = relationship(back_populates="infra_entries")
+
+
+class ZealyMember(Base):
+    __tablename__ = "zealy_members"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    telegram_id: Mapped[int] = mapped_column(BigInteger, nullable=False, unique=True, index=True)
+    wallet: Mapped[str | None] = mapped_column(String(255), unique=True)
+    xp: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    level: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
+    tier: Mapped[str | None] = mapped_column(String(64))
+    zealy_user_id: Mapped[str | None] = mapped_column(String(128), unique=True)
+    metadata: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False
+    )
+
+    grants: Mapped[list["ZealyGrant"]] = relationship(
+        back_populates="member", cascade="all, delete-orphan"
+    )
+
+
+class ZealyQuest(Base):
+    __tablename__ = "zealy_quests"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    slug: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
+    zealy_quest_id: Mapped[str | None] = mapped_column(String(128), unique=True)
+    xp_value: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    metadata: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False
+    )
+
+    grants: Mapped[list["ZealyGrant"]] = relationship(
+        back_populates="quest", cascade="all, delete-orphan"
+    )
+
+
+class ZealyGrantStatus(enum.Enum):
+    PENDING = "pending"
+    COMPLETED = "completed"
+    FAILED = "failed"
+
+
+class ZealyGrant(Base):
+    __tablename__ = "zealy_grants"
+    __table_args__ = (
+        UniqueConstraint("member_id", "quest_id", name="uq_zealy_grant_member_quest"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    member_id: Mapped[int] = mapped_column(ForeignKey("zealy_members.id", ondelete="CASCADE"))
+    quest_id: Mapped[int] = mapped_column(ForeignKey("zealy_quests.id", ondelete="CASCADE"))
+    status: Mapped[ZealyGrantStatus] = mapped_column(
+        Enum(ZealyGrantStatus, name="zealy_grant_status", native_enum=False),
+        default=ZealyGrantStatus.PENDING,
+        nullable=False,
+    )
+    tx_ref: Mapped[str | None] = mapped_column(String(255))
+    xp_awarded: Mapped[int | None] = mapped_column(Integer)
+    metadata: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False
+    )
+
+    member: Mapped[ZealyMember] = relationship(back_populates="grants")
+    quest: Mapped[ZealyQuest] = relationship(back_populates="grants")

@@ -61,6 +61,7 @@ def render_contract_block(
     addresses: Iterable[str],
     chain: str | None = None,
     token_ticker: str | None = None,
+    supply: str | None = None,
     explorer_url: str | None = None,
 ) -> str:
     chain_name = chain or "Solana"
@@ -73,6 +74,8 @@ def render_contract_block(
 
     if token_ticker:
         lines.append(f"Ticker: {md.inline_code(token_ticker)}")
+    if supply:
+        lines.append(f"Supply: {md.inline_code(supply)}")
 
     for idx, address in enumerate(addresses, start=1):
         lines.append(f"{idx}\\) {md.inline_code(address)}")

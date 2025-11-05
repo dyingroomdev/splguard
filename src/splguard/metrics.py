@@ -19,6 +19,10 @@ def get_counters() -> Mapping[str, int]:
     return dict(_COUNTERS)
 
 
+def set_value(name: str, value: int) -> None:
+    _COUNTERS[name] = value
+
+
 def reset_counters() -> None:
     _COUNTERS.clear()
 

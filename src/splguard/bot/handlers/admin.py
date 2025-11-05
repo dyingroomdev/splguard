@@ -13,7 +13,8 @@ from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ...models import PresaleStatus
-from ...metrics import increment as metrics_increment
+from ...metrics import get_counters, increment as metrics_increment
+from ...services import zealy as zealy_service
 from ...services.admin import AdminService, TeamEntry
 from ...services.audit import format_diff, log_admin_action
 from ...services.moderation import ModerationService
@@ -207,6 +208,46 @@ async def handle_admin(
         ]
     )
     await message.answer(diff_message, parse_mode=ParseMode.MARKDOWN_V2)
+
+
+@router.message(Command("zealystats"))
+async def handle_zealy_stats(
+    message: Message,
+    session: AsyncSession,
+    redis: Redis | None,
+    bot,
+) -> None:
+    if message.from_user is None:
+        return
+
+    moderation, profile, authorized = await _check_admin(message, session, redis)
+    if not authorized:
+        return
+
+    counters = get_counters()
+    events = counters.get("zealy_events_total", 0)
+    awards = counters.get("zealy_awards_total", 0)
+    dlq_info = await zealy_service.dlq_snapshot(redis, limit=5)
+    dlq_size = dlq_info["size"] if dlq_info else 0
+
+    lines = [
+        md.bold("Zealy Telemetry"),
+        f"Events: {md.inline_code(str(events))}",
+        f"Awards: {md.inline_code(str(awards))}",
+        f"DLQ size: {md.inline_code(str(dlq_size))}",
+    ]
+
+    entries = (dlq_info or {}).get("entries") if dlq_info else []
+    if entries:
+        lines.append("")
+        lines.append(md.bold("Recent DLQ"))
+        for entry in entries:
+            tx = md.inline_code(entry.get("tx_signature", "-"))
+            reason = md.escape_md(entry.get("reason", "unknown"))
+            wallet = md.inline_code(entry.get("wallet", "-"))
+            lines.append(f"{tx} • {reason} • {wallet}")
+
+    await message.answer(md.join_lines(lines), parse_mode=ParseMode.MARKDOWN_V2)
 
 
 async def _apply_pending_action(message: Message, session: AsyncSession, redis: Redis | None, bot, pending: PendingAction) -> None:

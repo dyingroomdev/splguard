@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import html
+from typing import Any
+
 from aiogram import Router
 from aiogram.enums import ChatMemberStatus, ParseMode
 from aiogram.types import CallbackQuery, ChatMemberUpdated, InlineKeyboardButton, InlineKeyboardMarkup, Message
@@ -16,57 +19,74 @@ from ...utils import markdown as md
 router = Router(name="onboarding")
 
 
-def _welcome_keyboard(website_url: str | None, presale_url: str | None) -> InlineKeyboardMarkup:
-    # Row 1: Contract and Presale
-    first_row = [
-        InlineKeyboardButton(text="🧾 Contract", callback_data="welcome:contract"),
+def _welcome_keyboard(payload: dict[str, Any] | None, presale_url: str | None) -> InlineKeyboardMarkup:
+    data = payload or {}
+    website_url = data.get("website")
+    docs_url = data.get("docs")
+    social_links = data.get("social_links") or {}
+    twitter_url = social_links.get("Twitter") or "https://twitter.com/splshield"
+    dapp_url = social_links.get("Dapp") or "https://ex.splshield.com"
+    risk_bot_url = social_links.get("Risk Scanner App") or "https://t.me/splshieldbot"
+
+    buttons: list[list[InlineKeyboardButton]] = []
+
+    row_one = [
         InlineKeyboardButton(
             text="💰 Presale",
             url=presale_url,
         )
         if presale_url
         else InlineKeyboardButton(text="💰 Presale", callback_data="welcome:presale"),
+        InlineKeyboardButton(text="🧾 Contract", callback_data="welcome:contract"),
     ]
+    buttons.append(row_one)
 
-    # Row 2: Website and Official Links
-    second_row = [
-        InlineKeyboardButton(text="🌐 Website", url="https://splshield.com/"),
+    row_two: list[InlineKeyboardButton] = []
+    if website_url:
+        row_two.append(InlineKeyboardButton(text="🌐 Website", url=website_url))
+    if docs_url:
+        row_two.append(InlineKeyboardButton(text="📄 Docs", url=docs_url))
+    if row_two:
+        buttons.append(row_two)
+
+    buttons.append([
         InlineKeyboardButton(text="📢 Official Links", callback_data="welcome:links"),
-    ]
-
-    # Row 3: Support and Risk Scanner Bot
-    third_row = [
         InlineKeyboardButton(text="🆘 Support", url="https://t.me/splsupportbot"),
-        InlineKeyboardButton(text="🤖 Risk Scanner Bot", url="https://t.me/splshieldbot"),
-    ]
+    ])
 
-    # Row 4: Dapp and Twitter
-    fourth_row = [
-        InlineKeyboardButton(text="🔷 Dapp", url="https://ex.splshield.com"),
-        InlineKeyboardButton(text="🐦 Twitter", url="https://twitter.com/splshield"),
-    ]
+    row_four: list[InlineKeyboardButton] = []
+    if risk_bot_url:
+        row_four.append(InlineKeyboardButton(text="🤖 Risk Scanner", url=risk_bot_url))
+    if dapp_url:
+        row_four.append(InlineKeyboardButton(text="🔷 Dapp", url=dapp_url))
+    if twitter_url:
+        row_four.append(InlineKeyboardButton(text="🐦 Twitter", url=twitter_url))
+    if row_four:
+        buttons.append(row_four)
 
-    return InlineKeyboardMarkup(inline_keyboard=[first_row, second_row, third_row, fourth_row])
+    return InlineKeyboardMarkup(inline_keyboard=buttons)
 
 
 def _welcome_text(username: str | None) -> str:
-    greeting_name = username or "friend"
-    return md.join_lines(
-        [
-            f"👋 Welcome to {md.bold('SPL Shield')}, {md.escape_md(greeting_name)}{md.escape_md('!')}",
-            "",
-            md.escape_md("We are building the first AI powered Solana risk scanner 🛡️"),
-            "",
-            md.bold("Quick actions"),
-            md.escape_md("💰 Presale · join while spots remain"),
-            md.escape_md("🧾 Contract · verify before you trade"),
-            md.escape_md("🌐 Links · stay on official channels"),
-            "",
-            f"{md.escape_md('⚠️ Please avoid unsolicited links or ads')} {md.escape_md('—')} {md.escape_md('spam gets removed instantly.')}",
-            "",
-            f"{md.escape_md('💡 For help, use')} {md.inline_code('/commands')} {md.escape_md('to see all available bot commands.')}",
-        ]
-    )
+    greeting_name = html.escape(username) if username else "friend"
+    contract = html.escape("tdLS6cTi91yLm5BD5H2Ky5Wbs5YeTTHBqfGKjQX2hoz")
+    lines = [
+        f"👋 Welcome to <b>SPL Shield</b>, <b>{greeting_name}</b>!",
+        "",
+        "⚡️ <b>What we do</b>",
+        "• AI-powered Solana risk scanning",
+        "• Real-time presale monitoring",
+        "",
+        "💎 <b>Token essentials</b>",
+        "• Total supply: <code>10B TDL</code>",
+        f"• Mint: <code>{contract}</code>",
+        "• Presale: 5 Jan 2026 · Listing: 6 Jan 2026",
+        "",
+        "🚀 <b>Quick commands</b>",
+        "• Use <code>/commands</code> to explore the bot",
+        "• Only trust links shared by SPL Shield admins",
+    ]
+    return "\n".join(lines)
 
 
 @router.chat_member()
@@ -92,15 +112,14 @@ async def handle_member_update(
     presale_service = PresaleService(session, redis)
     summary = await presale_service.get_summary(refresh_external=False)
 
-    website_url = payload.get("website") if payload else None
     presale_url = summary.primary_link if summary else None
 
     text = _welcome_text(user.full_name)
     message = await bot.send_message(
         chat_id=event.chat.id,
         text=text,
-        reply_markup=_welcome_keyboard(website_url, presale_url),
-        parse_mode=ParseMode.MARKDOWN_V2,
+        reply_markup=_welcome_keyboard(payload, presale_url),
+        parse_mode=ParseMode.HTML,
     )
     # Welcome message stays permanently (no auto-delete)
     metrics_increment("new_members.welcomed")
@@ -164,6 +183,7 @@ async def _send_contract_block(
         addresses=payload["contract_addresses"],
         chain="Solana",
         token_ticker=payload.get("token_ticker"),
+        supply=payload.get("supply_display"),
         explorer_url=payload.get("explorer_url"),
     )
     if not text.strip():
@@ -205,9 +225,10 @@ async def _send_presale_block(
         f"{md.bold('$TDL Presale')}",
         "",
         f"{md.bold('💰 Presale Details')}",
-        f"{md.escape_md('📅 Start:')} {md.escape_md('6 PM UTC (00+), 26th Oct 2025')}",
+        f"{md.escape_md('📅 Presale:')} {md.escape_md('5 Jan 2026 · 18:00 UTC')}",
+        f"{md.escape_md('📈 Listing:')} {md.escape_md('6 Jan 2026 · 18:00 UTC')}",
         f"{md.escape_md('💵 Price:')} {md.escape_md('$0.002 per TDL')}",
-        f"{md.escape_md('📊 Supply:')} {md.escape_md('1B TDL')}",
+        f"{md.escape_md('📊 Supply:')} {md.escape_md('10B TDL')}",
         "",
         md.escape_md("Join early to secure your position before the whitelist ends!"),
     ])

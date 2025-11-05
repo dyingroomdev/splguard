@@ -134,6 +134,7 @@ async def handle_contract(message: Message, session: AsyncSession, redis: Redis 
         addresses=addresses,
         chain="Solana",
         token_ticker=payload.get("token_ticker"),
+        supply=payload.get("supply_display"),
         explorer_url=payload.get("explorer_url"),
     )
 

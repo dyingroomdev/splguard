@@ -11,7 +11,7 @@ INITIAL_SETTINGS = {
     "project_name": "SPL Shield",
     "token_ticker": "TDL",
     "contract_addresses": [
-        "PENDING_CONTRACT_ADDRESS",
+        "tdLS6cTi91yLm5BD5H2Ky5Wbs5YeTTHBqfGKjQX2hoz",
     ],
     "explorer_url": None,
     "website": "https://splshield.app",

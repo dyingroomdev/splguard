@@ -15,8 +15,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from ..config import settings
-from ..models import Presale, PresaleStatus, Settings
+from ..models import Presale, PresaleStatus, Settings, ZealyGrantStatus, ZealyMember
 from ..templates import render_presale_block
+from . import zealy as zealy_service
+from .presale_verifier import PresaleVerifier
 
 logger = logging.getLogger(__name__)
 
@@ -102,6 +104,7 @@ class PresaleService:
     def __init__(self, session: AsyncSession, redis: Redis | None):
         self._session = session
         self._redis = redis
+
     async def get_summary(self, refresh_external: bool = True) -> PresaleSummary | None:
         settings_row, presale = await self._load_presale()
         if settings_row is None or presale is None:
@@ -149,6 +152,66 @@ class PresaleService:
         await self._session.commit()
         await self.invalidate_caches()
         return await self.get_summary(refresh_external=False)
+
+    async def verify_submission(self, tx_signature: str, member: ZealyMember) -> dict[str, Any]:
+        verifier = PresaleVerifier()
+        outcome = await verifier.verify(tx_signature, member.wallet)
+        if not outcome.ok:
+            await zealy_service.enqueue_dlq(
+                self._redis,
+                {
+                    "tx_signature": tx_signature,
+                    "telegram_id": member.telegram_id,
+                    "wallet": member.wallet,
+                    "reason": outcome.reason,
+                },
+            )
+            return {"ok": False, "reason": outcome.reason}
+
+        quest_slug = settings.zealy_presale_quest_slug
+        grant_result = None
+        if quest_slug:
+            quest = await zealy_service.get_or_create_quest(
+                session=self._session,
+                slug=quest_slug,
+                xp_value=settings.zealy_presale_xp_reward,
+                zealy_quest_id=settings.zealy_presale_quest_id,
+            )
+            try:
+                grant_result = await zealy_service.record_grant(
+                    session=self._session,
+                    member=member,
+                    quest=quest,
+                    status=ZealyGrantStatus.COMPLETED,
+                    tx_ref=tx_signature,
+                    xp_awarded=outcome.xp_awarded,
+                )
+            except ValueError:
+                return {"ok": False, "reason": "already_submitted"}
+
+        if settings.zealy_enabled and settings.zealy_presale_quest_id:
+            try:
+                await zealy_service.complete_quest(
+                    quest_id=settings.zealy_presale_quest_id,
+                    user_id=member.zealy_user_id,
+                )
+            except zealy_service.ZealyNotConfiguredError:
+                logger.debug("Zealy quest completion skipped; configuration incomplete.")
+            except Exception:
+                logger.exception(
+                    "Failed to report presale quest completion for telegram_id=%s",
+                    member.telegram_id,
+                )
+
+        return {
+            "ok": True,
+            "amount": outcome.amount,
+            "currency": outcome.currency,
+            "grant": grant_result.grant if grant_result else None,
+            "tier_changed": grant_result.tier_changed if grant_result else False,
+            "previous_tier": grant_result.previous_tier if grant_result else None,
+            "new_tier": grant_result.new_tier if grant_result else member.tier,
+        }
 
     async def _maybe_sync_with_external(self, presale: Presale) -> None:
         api_url = settings.presale_api_url

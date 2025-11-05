@@ -21,6 +21,32 @@ class Settings(BaseSettings):
     presale_api_url: str | None = Field(default=None, alias="PRESALE_API_URL")
     presale_refresh_seconds: int = Field(default=60, alias="PRESALE_REFRESH_SECONDS")
 
+    zealy_api_key: str | None = Field(default=None, alias="ZEALY_API_KEY")
+    zealy_community_id: str | None = Field(default=None, alias="ZEALY_COMMUNITY_ID")
+    zealy_base_url: str = Field(default="https://api.zealy.io", alias="ZEALY_BASE_URL")
+    zealy_enabled: bool = Field(default=False, alias="ZEALY_ENABLED")
+    zealy_webhook_token: str | None = Field(default=None, alias="ZEALY_WEBHOOK_TOKEN")
+    zealy_presale_quest_id: str | None = Field(default=None, alias="ZEALY_PRESALE_QUEST_ID")
+    zealy_presale_quest_slug: str | None = Field(default=None, alias="ZEALY_PRESALE_QUEST_SLUG")
+    zealy_presale_xp_reward: int = Field(default=0, alias="ZEALY_PRESALE_XP_REWARD")
+
+    solana_rpc_url: str | None = Field(default=None, alias="SOLANA_RPC_URL")
+    tdl_mint: str | None = Field(default=None, alias="TDL_MINT")
+    tdl_supply_display: str | None = Field(default=None, alias="TDL_SUPPLY_DISPLAY")
+    presale_end_iso: str | None = Field(default=None, alias="PRESALE_END_ISO")
+    listing_date_iso: str | None = Field(default=None, alias="LISTING_DATE_ISO")
+    presale_smithii_program_ids: list[str] = Field(
+        default_factory=list, alias="PRESALE_SMITHII_PROGRAM_IDS"
+    )
+    presale_vault_addresses: list[str] = Field(
+        default_factory=list, alias="PRESALE_VAULT_ADDRESSES"
+    )
+    presale_token_mints: list[str] = Field(
+        default_factory=list, alias="PRESALE_TOKEN_MINTS"
+    )
+    presale_min_sol_lamports: int = Field(default=0, alias="PRESALE_MIN_SOL_LAMPORTS")
+    presale_min_usdc_amount: int = Field(default=0, alias="PRESALE_MIN_USDC_AMOUNT")
+
     @field_validator("redis_url", mode="before")
     @classmethod
     def _empty_to_none(cls, value: Any) -> str | None:
@@ -41,6 +67,23 @@ class Settings(BaseSettings):
         if isinstance(value, (list, tuple, set)):
             return [int(item) for item in value]
         raise ValueError("ADMIN_IDS must be a comma-separated string or list of integers.")
+
+    @field_validator(
+        "presale_smithii_program_ids",
+        "presale_vault_addresses",
+        "presale_token_mints",
+        mode="before",
+    )
+    @classmethod
+    def _split_string_list(cls, value: Any) -> list[str]:
+        if value in (None, "", []):
+            return []
+        if isinstance(value, str):
+            parts = [part.strip() for part in value.split(",")]
+            return [part for part in parts if part]
+        if isinstance(value, (list, tuple, set)):
+            return [str(item).strip() for item in value if str(item).strip()]
+        raise ValueError("List values must be provided as comma-separated strings or iterables.")
 
 
 settings = Settings()

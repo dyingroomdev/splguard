@@ -1,11 +1,12 @@
 from __future__ import annotations
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException, Request
 from sqlalchemy import text
 
 from .db import AsyncSessionMaker
-from .metrics import uptime_seconds
 from .redis import get_redis_client
+from .config import settings
+from .services import zealy as zealy_service
 
 
 def create_app() -> FastAPI:
@@ -46,6 +47,26 @@ def create_app() -> FastAPI:
             "db": db_ok,
             "redis": redis_status,
         }
+
+    @app.post("/webhooks/zealy", tags=["webhooks"])
+    async def zealy_webhook(request: Request, token: str) -> dict[str, bool]:
+        expected = settings.zealy_webhook_token
+        if not expected:
+            raise HTTPException(status_code=503, detail="Zealy webhook token not configured")
+        if token != expected:
+            raise HTTPException(status_code=401, detail="Invalid token")
+
+        event_name = request.headers.get("x-zealy-event")
+        if not event_name:
+            raise HTTPException(status_code=400, detail="Missing x-zealy-event header")
+
+        try:
+            payload = await request.json()
+        except Exception:
+            payload = {}
+
+        handled = await zealy_service.process_event(event_name, payload)
+        return {"ok": handled}
 
     return app
 

@@ -1,3 +1,3 @@
-from . import admin, info, onboarding, ping
+from . import admin, info, onboarding, ping, zealy
 
-__all__ = ["ping", "info", "admin", "onboarding"]
+__all__ = ["ping", "info", "admin", "onboarding", "zealy"]

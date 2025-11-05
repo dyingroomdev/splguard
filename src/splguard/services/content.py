@@ -10,6 +10,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from ..config import settings as app_settings
 from ..models import Presale, Settings, TeamMember
 
 CACHE_TTL_SECONDS = 60
@@ -59,15 +60,15 @@ class ContentService:
             .limit(1)
         )
         result = await self._session.execute(query)
-        settings: Settings | None = result.scalar_one_or_none()
-        if settings is None:
+        settings_row: Settings | None = result.scalar_one_or_none()
+        if settings_row is None:
             return None
 
         presale_payload = None
-        if settings.presales:
+        if settings_row.presales:
             fallback_start = datetime.min.replace(tzinfo=timezone.utc)
             presale = sorted(
-                settings.presales,
+                settings_row.presales,
                 key=lambda p: (
                     (p.start_time or fallback_start),
                     p.id,
@@ -76,16 +77,18 @@ class ContentService:
             presale_payload = self._serialize_presale(presale)
 
         return {
-            "project_name": settings.project_name,
-            "token_ticker": settings.token_ticker,
-            "contract_addresses": list(settings.contract_addresses or []),
-            "explorer_url": settings.explorer_url,
-            "website": settings.website,
-            "docs": settings.docs,
-            "social_links": settings.social_links or {},
-            "logo": settings.logo,
+            "project_name": settings_row.project_name,
+            "token_ticker": settings_row.token_ticker,
+            "contract_addresses": list(settings_row.contract_addresses or []),
+            "explorer_url": settings_row.explorer_url,
+            "website": settings_row.website,
+            "docs": settings_row.docs,
+            "social_links": settings_row.social_links or {},
+            "logo": settings_row.logo,
+            "supply_display": app_settings.tdl_supply_display,
+            "token_mint": app_settings.tdl_mint,
             "team": [self._serialize_team_member(member) for member in sorted(
-                settings.team_members, key=lambda member: (member.display_order, member.id)
+                settings_row.team_members, key=lambda member: (member.display_order, member.id)
             )],
             "presale": presale_payload,
         }
