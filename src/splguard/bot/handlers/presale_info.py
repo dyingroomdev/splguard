@@ -7,7 +7,6 @@ from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ...config import settings
-from ...services import affiliates as affiliate_service
 from ...services import zealy as zealy_service
 
 router = Router(name="presale-info")
@@ -54,16 +53,5 @@ async def handle_presale_leaderboard(
     session: AsyncSession,
     redis: Redis | None,
 ) -> None:
-    summary = await affiliate_service.top_inviters(session, days=7, limit=10)
-    if not summary:
-        await callback.message.answer("No referral activity recorded yet.")
-        await callback.answer()
-        return
-
-    lines = ["<b>Top Shillers (7d)</b>"]
-    for idx, row in enumerate(summary, start=1):
-        mention = f"<a href='tg://user?id={row['owner_id']}'>User {row['owner_id']}</a>"
-        lines.append(f"{idx}. {mention} — <b>{row['joins']}</b> joins")
-
-    await callback.message.answer("\n".join(lines), parse_mode="HTML")
+    await callback.message.answer("Affiliate leaderboard is no longer available.")
     await callback.answer()

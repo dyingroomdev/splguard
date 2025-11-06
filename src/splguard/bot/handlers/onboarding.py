@@ -129,6 +129,16 @@ async def handle_member_update(
         return
     old_status = _coerce_status(event.old_chat_member.status)
     new_status = _coerce_status(event.new_chat_member.status)
+    logger.debug(
+        "chat_member update",
+        extra={
+            "chat_type": chat_type,
+            "chat_id": event.chat.id,
+            "user_id": event.new_chat_member.user.id if event.new_chat_member.user else None,
+            "old_status": getattr(old_status, "value", old_status),
+            "new_status": getattr(new_status, "value", new_status),
+        },
+    )
     if new_status != ChatMemberStatus.MEMBER or old_status == ChatMemberStatus.MEMBER:
         return
     user = event.new_chat_member.user
@@ -136,14 +146,26 @@ async def handle_member_update(
         return
 
     content_service = ContentService(session=session, redis=redis)
-    payload = await content_service.get_settings_payload()
+    try:
+        payload = await content_service.get_settings_payload()
+    except Exception:
+        logger.exception("Failed to load content settings payload")
+        payload = None
 
     presale_service = PresaleService(session, redis)
-    summary = await presale_service.get_summary(refresh_external=False)
+    try:
+        summary = await presale_service.get_summary(refresh_external=False)
+    except Exception:
+        logger.exception("Failed to load presale summary")
+        summary = None
 
     presale_url = summary.primary_link if summary else None
 
-    member_summary = await zealy_service.get_member_summary(session, user.id)
+    try:
+        member_summary = await zealy_service.get_member_summary(session, user.id)
+    except Exception:
+        logger.exception("Failed to load member summary for %s", user.id)
+        member_summary = None
     member_title = None
     if member_summary and member_summary.get("title"):
         member_title = member_summary["title"]
@@ -171,7 +193,10 @@ async def handle_member_update(
         )
         metrics_increment("probation.assigned")
 
-    await presale_service.add_watcher(event.chat.id)
+    try:
+        await presale_service.add_watcher(event.chat.id)
+    except Exception:
+        logger.exception("Failed to register watcher for chat %s", event.chat.id)
 
 
 @router.message()
@@ -186,20 +211,44 @@ async def handle_new_member_message(
     chat_type = _coerce_chat_type(message.chat.type)
     if chat_type not in {"group", "supergroup"}:
         return
+    logger.debug(
+        "new_chat_members message",
+        extra={
+            "chat_type": chat_type,
+            "chat_id": message.chat.id,
+            "user_ids": [member.id for member in message.new_chat_members],
+        },
+    )
     content_service = ContentService(session=session, redis=redis)
-    payload = await content_service.get_settings_payload()
+    try:
+        payload = await content_service.get_settings_payload()
+    except Exception:
+        logger.exception("Failed to load content settings payload (message path)")
+        payload = None
 
     presale_service = PresaleService(session, redis)
-    summary = await presale_service.get_summary(refresh_external=False)
+    try:
+        summary = await presale_service.get_summary(refresh_external=False)
+    except Exception:
+        logger.exception("Failed to load presale summary (message path)")
+        summary = None
     presale_url = summary.primary_link if summary else None
 
     moderation = ModerationService(session, redis)
-    profile = await moderation.get_profile()
+    try:
+        profile = await moderation.get_profile()
+    except Exception:
+        logger.exception("Failed to load moderation profile")
+        profile = None
 
     for user in message.new_chat_members:
         if user.is_bot:
             continue
-        member_summary = await zealy_service.get_member_summary(session, user.id)
+        try:
+            member_summary = await zealy_service.get_member_summary(session, user.id)
+        except Exception:
+            logger.exception("Failed to load member summary for %s (message path)", user.id)
+            member_summary = None
         member_title = None
         if member_summary and member_summary.get("title"):
             member_title = member_summary["title"]
@@ -221,7 +270,10 @@ async def handle_new_member_message(
                 probation_seconds=probation_seconds,
             )
             metrics_increment("probation.assigned")
-        await presale_service.add_watcher(message.chat.id)
+        try:
+            await presale_service.add_watcher(message.chat.id)
+        except Exception:
+            logger.exception("Failed to register watcher for chat %s (message path)", message.chat.id)
 
 
 @router.callback_query(lambda c: c.data and c.data.startswith("welcome:"))
