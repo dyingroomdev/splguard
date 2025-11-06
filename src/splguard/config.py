@@ -51,6 +51,12 @@ class Settings(BaseSettings):
     presale_min_buy_sol: float = Field(default=0.0, alias="PRESALE_MIN_BUY_SOL")
     presale_max_buy_sol: float = Field(default=0.0, alias="PRESALE_MAX_BUY_SOL")
 
+    affiliates_enabled: bool = Field(default=False, alias="AFFILIATES_ENABLED")
+    affiliates_notify_shiller: bool = Field(default=True, alias="AFFILIATES_NOTIFY_SHILLER")
+    affiliates_rotate_expiry_days: int = Field(default=0, alias="AFFILIATES_ROTATE_EXPIRY_DAYS")
+    affiliates_max_links_per_user: int = Field(default=1, alias="AFFILIATES_MAX_LINKS_PER_USER")
+    splshield_chat_id: int | None = Field(default=None, alias="SPLSHIELD_CHAT_ID")
+
     @field_validator("redis_url", mode="before")
     @classmethod
     def _empty_to_none(cls, value: Any) -> str | None:

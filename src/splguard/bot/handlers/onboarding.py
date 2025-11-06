@@ -52,11 +52,13 @@ def _welcome_keyboard(payload: dict[str, Any] | None, presale_url: str | None) -
         InlineKeyboardButton(text="🤖 Risk Scanner Bot", url=risk_bot_url or "https://t.me/splshieldbot"),
     ])
 
-    row_four = [
+    buttons.append([
         InlineKeyboardButton(text="📊 Presale Info", callback_data="presale_info"),
+        InlineKeyboardButton(text="👥 Shiller Board", callback_data="presale_leaderboard"),
+    ])
+    buttons.append([
         InlineKeyboardButton(text="🐦 Twitter", url=twitter_url or "https://twitter.com/splshield"),
-    ]
-    buttons.append(row_four)
+    ])
 
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 
@@ -254,7 +256,6 @@ async def _send_links_block(
     links = {
         "Website": "https://splshield.com/",
         "Risk Scanner App": "https://app.splshield.com/",
-        "Dapp": "https://ex.splshield.com",
         "Documentation": "https://docs.splshield.com/",
         "Twitter": "https://twitter.com/splshield",
     }

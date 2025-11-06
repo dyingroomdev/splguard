@@ -238,3 +238,32 @@ class ZealyGrant(Base):
 
     member: Mapped[ZealyMember] = relationship(back_populates="grants")
     quest: Mapped[ZealyQuest] = relationship(back_populates="grants")
+
+
+class InviteLink(Base):
+    __tablename__ = "invite_links"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    owner_tg_id: Mapped[int] = mapped_column(BigInteger, nullable=False, index=True)
+    chat_id: Mapped[int] = mapped_column(BigInteger, nullable=False, index=True)
+    invite_link: Mapped[str] = mapped_column(String(512), unique=True, nullable=False)
+    name: Mapped[str | None] = mapped_column(String(128))
+    creates_join_request: Mapped[bool] = mapped_column(nullable=False, default=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+
+
+class InviteStat(Base):
+    __tablename__ = "invite_stats"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    invite_link: Mapped[str] = mapped_column(String(512), nullable=False, index=True)
+    joined_user_id: Mapped[int] = mapped_column(BigInteger, nullable=False, index=True)
+    joined_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+
+    __table_args__ = (
+        UniqueConstraint("invite_link", "joined_user_id", name="uq_invite_link_joined_user"),
+    )

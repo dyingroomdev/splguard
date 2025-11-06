@@ -14,14 +14,14 @@ INITIAL_SETTINGS = {
         "tdLS6cTi91yLm5BD5H2Ky5Wbs5YeTTHBqfGKjQX2hoz",
     ],
     "explorer_url": "https://solscan.io/token/tdLS6cTi91yLm5BD5H2Ky5Wbs5YeTTHBqfGKjQX2hoz",
-    "website": "https://splshield.app",
-    "docs": "https://docs.splshield.app",
+    "website": "https://splshield.com",
+    "docs": "https://docs.splshield.com/",
     "social_links": {
         "twitter": "https://x.com/splshield",
         "telegram": "https://t.me/splshield",
-        "github": "https://github.com/splshield",
+        "github": "https://github.com/splshiled",
     },
-    "logo": "https://cdn.splshield.app/logo.png",
+    "logo": "https://cdn.splshield.com/logo.png",
 }
 
 INITIAL_TEAM = [
@@ -29,21 +29,21 @@ INITIAL_TEAM = [
         "name": "Aragorn",
         "role": "Lead Developer",
         "contact": "@aragornspl",
-        "avatar_url": "https://cdn.splshield.app/avatars/aragorn.png",
+        "avatar_url": "https://cdn.splshield.com/avatars/aragorn.png",
         "display_order": 1,
     },
     {
         "name": "Tom Harris",
         "role": "Marketing Head",
         "contact": "@tomharrisuk",
-        "avatar_url": "https://cdn.splshield.app/avatars/tom.png",
+        "avatar_url": "https://cdn.splshield.com/avatars/tom.png",
         "display_order": 2,
     },
     {
         "name": "Ethan Miller",
         "role": "COO",
         "contact": "@ethanspl",
-        "avatar_url": "https://cdn.splshield.app/avatars/ethan.png",
+        "avatar_url": "https://cdn.splshield.com/avatars/ethan.png",
         "display_order": 3,
     },
 ]
