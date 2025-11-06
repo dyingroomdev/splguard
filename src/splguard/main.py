@@ -47,6 +47,8 @@ async def _run_polling() -> None:
     dp.chat_member.middleware(db_middleware)
     dp.chat_member.middleware(redis_middleware)
     dp.chat_member.middleware(moderation_middleware)
+    dp.chat_join_request.middleware(db_middleware)
+    dp.chat_join_request.middleware(redis_middleware)
     dp.startup.register(presale_monitor.start)
     dp.shutdown.register(presale_monitor.stop)
     dp.include_router(router)

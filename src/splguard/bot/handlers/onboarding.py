@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 import html
+import logging
 from typing import Any
 
 from aiogram import Router
-from aiogram.enums import ChatMemberStatus, ParseMode
+from aiogram.enums import ChatMemberStatus, ChatType, ParseMode
 from aiogram.types import CallbackQuery, ChatMemberUpdated, InlineKeyboardButton, InlineKeyboardMarkup, Message
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -17,7 +18,27 @@ from ...services.presale import PresaleService
 from ...templates import render_contract_block, render_links_block, render_presale_block
 from ...utils import markdown as md
 
+logger = logging.getLogger(__name__)
 router = Router(name="onboarding")
+
+
+def _coerce_status(value: ChatMemberStatus | str | None) -> ChatMemberStatus | None:
+    if isinstance(value, ChatMemberStatus):
+        return value
+    if value is None:
+        return None
+    try:
+        return ChatMemberStatus(value)
+    except ValueError:
+        return None
+
+
+def _coerce_chat_type(value: ChatType | str | None) -> str | None:
+    if value is None:
+        return None
+    if isinstance(value, ChatType):
+        return value.value
+    return str(value)
 
 
 def _welcome_keyboard(payload: dict[str, Any] | None, presale_url: str | None) -> InlineKeyboardMarkup:
@@ -103,10 +124,11 @@ async def handle_member_update(
     redis: Redis | None,
     bot,
 ) -> None:
-    if event.chat.type not in ("group", "supergroup"):
+    chat_type = _coerce_chat_type(event.chat.type)
+    if chat_type not in {"group", "supergroup"}:
         return
-    old_status = event.old_chat_member.status
-    new_status = event.new_chat_member.status
+    old_status = _coerce_status(event.old_chat_member.status)
+    new_status = _coerce_status(event.new_chat_member.status)
     if new_status != ChatMemberStatus.MEMBER or old_status == ChatMemberStatus.MEMBER:
         return
     user = event.new_chat_member.user
@@ -150,6 +172,56 @@ async def handle_member_update(
         metrics_increment("probation.assigned")
 
     await presale_service.add_watcher(event.chat.id)
+
+
+@router.message()
+async def handle_new_member_message(
+    message: Message,
+    session: AsyncSession,
+    redis: Redis | None,
+    bot,
+) -> None:
+    if not message.new_chat_members:
+        return
+    chat_type = _coerce_chat_type(message.chat.type)
+    if chat_type not in {"group", "supergroup"}:
+        return
+    content_service = ContentService(session=session, redis=redis)
+    payload = await content_service.get_settings_payload()
+
+    presale_service = PresaleService(session, redis)
+    summary = await presale_service.get_summary(refresh_external=False)
+    presale_url = summary.primary_link if summary else None
+
+    moderation = ModerationService(session, redis)
+    profile = await moderation.get_profile()
+
+    for user in message.new_chat_members:
+        if user.is_bot:
+            continue
+        member_summary = await zealy_service.get_member_summary(session, user.id)
+        member_title = None
+        if member_summary and member_summary.get("title"):
+            member_title = member_summary["title"]
+        text = _welcome_text(user.full_name, member_title)
+        await bot.send_message(
+            chat_id=message.chat.id,
+            text=text,
+            reply_markup=_welcome_keyboard(payload, presale_url),
+            parse_mode=ParseMode.HTML,
+        )
+        metrics_increment("new_members.welcomed")
+        if profile:
+            probation_seconds = profile.probation_seconds or 600
+            await moderation.set_probation(
+                profile=profile,
+                chat_id=message.chat.id,
+                user_id=user.id,
+                username=user.username,
+                probation_seconds=probation_seconds,
+            )
+            metrics_increment("probation.assigned")
+        await presale_service.add_watcher(message.chat.id)
 
 
 @router.callback_query(lambda c: c.data and c.data.startswith("welcome:"))
