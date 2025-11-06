@@ -5,6 +5,8 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Any, Dict, Optional
 
+from html import escape as html_escape
+
 from aiogram import Router
 from aiogram.enums import ParseMode
 from aiogram.filters import Command
@@ -248,6 +250,57 @@ async def handle_zealy_stats(
             lines.append(f"{tx} • {reason} • {wallet}")
 
     await message.answer(md.join_lines(lines), parse_mode=ParseMode.MARKDOWN_V2)
+
+
+@router.message(Command("title"))
+async def handle_title_command(
+    message: Message,
+    session: AsyncSession,
+    redis: Redis | None,
+    bot,
+) -> None:
+    if message.from_user is None:
+        return
+
+    moderation, profile, authorized = await _check_admin(message, session, redis)
+    if not authorized:
+        return
+
+    if message.reply_to_message is None or message.reply_to_message.from_user is None:
+        await message.answer("Reply to a user with /title &lt;text&gt; or /title clear", parse_mode=ParseMode.HTML)
+        return
+
+    parts = message.text.split(maxsplit=1)
+    new_title_raw = parts[1].strip() if len(parts) > 1 else ""
+    if new_title_raw.lower() in {"", "clear", "remove", "-"}:
+        desired_title = None
+    else:
+        desired_title = new_title_raw[:24]
+
+    target_user = message.reply_to_message.from_user
+    _, previous, updated = await zealy_service.set_member_title(
+        session=session,
+        telegram_id=target_user.id,
+        title=desired_title,
+    )
+
+    diff = format_diff(previous or "-", updated or "-")
+    await log_admin_action(
+        bot=bot,
+        actor_id=message.from_user.id,
+        action="set_title",
+        diff=diff,
+    )
+
+    if updated:
+        text = (
+            f"🏷️ Title set for <a href='tg://user?id={target_user.id}'>{target_user.full_name}</a>: "
+            f"<b>{html_escape(updated)}</b>"
+        )
+    else:
+        text = f"🗑️ Title cleared for <a href='tg://user?id={target_user.id}'>{target_user.full_name}</a>"
+
+    await message.answer(text, parse_mode="HTML")
 
 
 async def _apply_pending_action(message: Message, session: AsyncSession, redis: Redis | None, bot, pending: PendingAction) -> None:

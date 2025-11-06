@@ -171,8 +171,9 @@ class ZealyMember(Base):
     xp: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     level: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
     tier: Mapped[str | None] = mapped_column(String(64))
+    title: Mapped[str | None] = mapped_column(String(64))
     zealy_user_id: Mapped[str | None] = mapped_column(String(128), unique=True)
-    metadata: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict, nullable=False)
+    metadata_json: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict, nullable=False)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
@@ -192,7 +193,7 @@ class ZealyQuest(Base):
     slug: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
     zealy_quest_id: Mapped[str | None] = mapped_column(String(128), unique=True)
     xp_value: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
-    metadata: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict, nullable=False)
+    metadata_json: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict, nullable=False)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
@@ -227,7 +228,7 @@ class ZealyGrant(Base):
     )
     tx_ref: Mapped[str | None] = mapped_column(String(255))
     xp_awarded: Mapped[int | None] = mapped_column(Integer)
-    metadata: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict, nullable=False)
+    metadata_json: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict, nullable=False)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )

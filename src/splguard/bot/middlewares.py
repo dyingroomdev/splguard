@@ -85,12 +85,14 @@ class ModerationMiddleware(BaseMiddleware):
         if await service.is_trusted(profile, user_id):
             return await handler(event, data)
 
+        member = await zealy_service.get_member(session, user_id)
+        member_title = member.title if member and member.title else None
+
         text_content = event.text or event.caption or ""
         if text_content.startswith("/"):
             command = text_content.split()[0].lower()
             required_tier = PREMIUM_COMMAND_TIERS.get(command)
             if required_tier:
-                member = await zealy_service.get_member(session, user_id)
                 current_rank = zealy_service.tier_rank(member.tier if member else None)
                 required_rank = zealy_service.tier_rank(required_tier)
                 if current_rank < required_rank:
@@ -181,6 +183,7 @@ class ModerationMiddleware(BaseMiddleware):
             warn_text = md.join_lines(
                 [
                     md.bold("Moderation notice"),
+                    f"Title: {md.escape_md(member_title)}" if member_title else None,
                     md.escape_md(violation_reason),
                     f"Strikes: {md.inline_code(str(decision.strikes))}",
                 ]
@@ -247,6 +250,7 @@ class ModerationMiddleware(BaseMiddleware):
                 md.bold("Moderation action"),
                 f"Chat: {md.inline_code(str(message.chat.id))}",
                 f"User: {username}",
+                f"Title: {md.escape_md(member_title)}" if member_title else None,
                 f"Action: {md.escape_md(decision.action)}",
                 f"Reason: {md.escape_md(decision.reason)}",
                 f"Strikes: {md.inline_code(str(decision.strikes))}",

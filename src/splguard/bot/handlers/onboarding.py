@@ -10,6 +10,7 @@ from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ...metrics import increment as metrics_increment
+from ...services import zealy as zealy_service
 from ...services.content import ContentService
 from ...services.moderation import ModerationService
 from ...services.presale import PresaleService
@@ -25,67 +26,71 @@ def _welcome_keyboard(payload: dict[str, Any] | None, presale_url: str | None) -
     docs_url = data.get("docs")
     social_links = data.get("social_links") or {}
     twitter_url = social_links.get("Twitter") or "https://twitter.com/splshield"
-    dapp_url = social_links.get("Dapp") or "https://ex.splshield.com"
     risk_bot_url = social_links.get("Risk Scanner App") or "https://t.me/splshieldbot"
 
     buttons: list[list[InlineKeyboardButton]] = []
 
     row_one = [
+        InlineKeyboardButton(text="📜 Contract", callback_data="welcome:contract"),
         InlineKeyboardButton(
             text="💰 Presale",
             url=presale_url,
         )
         if presale_url
         else InlineKeyboardButton(text="💰 Presale", callback_data="welcome:presale"),
-        InlineKeyboardButton(text="🧾 Contract", callback_data="welcome:contract"),
     ]
     buttons.append(row_one)
 
     row_two: list[InlineKeyboardButton] = []
     if website_url:
         row_two.append(InlineKeyboardButton(text="🌐 Website", url=website_url))
-    if docs_url:
-        row_two.append(InlineKeyboardButton(text="📄 Docs", url=docs_url))
-    if row_two:
-        buttons.append(row_two)
+    row_two.append(InlineKeyboardButton(text="📎 Official Links", callback_data="welcome:links"))
+    buttons.append(row_two)
 
     buttons.append([
-        InlineKeyboardButton(text="📢 Official Links", callback_data="welcome:links"),
         InlineKeyboardButton(text="🆘 Support", url="https://t.me/splsupportbot"),
+        InlineKeyboardButton(text="🤖 Risk Scanner Bot", url=risk_bot_url or "https://t.me/splshieldbot"),
     ])
 
-    row_four: list[InlineKeyboardButton] = []
-    if risk_bot_url:
-        row_four.append(InlineKeyboardButton(text="🤖 Risk Scanner", url=risk_bot_url))
-    if dapp_url:
-        row_four.append(InlineKeyboardButton(text="🔷 Dapp", url=dapp_url))
-    if twitter_url:
-        row_four.append(InlineKeyboardButton(text="🐦 Twitter", url=twitter_url))
-    if row_four:
-        buttons.append(row_four)
+    row_four = [
+        InlineKeyboardButton(text="📊 Presale Info", callback_data="presale_info"),
+        InlineKeyboardButton(text="🐦 Twitter", url=twitter_url or "https://twitter.com/splshield"),
+    ]
+    buttons.append(row_four)
 
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 
 
-def _welcome_text(username: str | None) -> str:
+def _welcome_text(username: str | None, title: str | None) -> str:
     greeting_name = html.escape(username) if username else "friend"
     contract = html.escape("tdLS6cTi91yLm5BD5H2Ky5Wbs5YeTTHBqfGKjQX2hoz")
-    lines = [
-        f"👋 Welcome to <b>SPL Shield</b>, <b>{greeting_name}</b>!",
-        "",
-        "⚡️ <b>What we do</b>",
-        "• AI-powered Solana risk scanning",
-        "• Real-time presale monitoring",
-        "",
-        "💎 <b>Token essentials</b>",
-        "• Total supply: <code>10B TDL</code>",
-        f"• Mint: <code>{contract}</code>",
-        "• Presale: 5 Jan 2026 · Listing: 6 Jan 2026",
-        "",
-        "🚀 <b>Quick commands</b>",
-        "• Use <code>/commands</code> to explore the bot",
-        "• Only trust links shared by SPL Shield admins",
-    ]
+    lines = [f"👋 Welcome to <b>SPL Shield</b>, <b>{greeting_name}</b>!"]
+    if title:
+        lines.append(f"🏷️ <b>{html.escape(title)}</b>")
+    lines.extend(
+        [
+            "",
+            "⚡️ <b>What we do</b>",
+            "• AI-powered Solana risk scanning",
+            "• Real-time presale monitoring",
+            "",
+            "💎 <b>Token essentials</b>",
+            "• Total supply: <code>10B TDL</code>",
+            f"• Mint: <code>{contract}</code>",
+            "• Presale: 6 Nov 2025 · Ends 5 Jan 2026",
+            "",
+            "🚀 <b>Quick commands</b>",
+            "• Use <code>/commands</code> to explore the bot",
+            "• Only trust links shared by SPL Shield admins",
+            "",
+            "🏅 <b>Zealy quests</b>",
+            "• <code>/link &lt;wallet&gt;</code> bind your wallet",
+            "• <code>/quests</code> browse available quests",
+            "• <code>/xp</code> check your progress",
+            "• <code>/tier</code> view perks and status",
+            "• <code>/submit &lt;txSig&gt;</code> verify presale buys",
+        ]
+    )
     return "\n".join(lines)
 
 
@@ -114,7 +119,12 @@ async def handle_member_update(
 
     presale_url = summary.primary_link if summary else None
 
-    text = _welcome_text(user.full_name)
+    member_summary = await zealy_service.get_member_summary(session, user.id)
+    member_title = None
+    if member_summary and member_summary.get("title"):
+        member_title = member_summary["title"]
+
+    text = _welcome_text(user.full_name, member_title)
     message = await bot.send_message(
         chat_id=event.chat.id,
         text=text,
@@ -225,12 +235,12 @@ async def _send_presale_block(
         f"{md.bold('$TDL Presale')}",
         "",
         f"{md.bold('💰 Presale Details')}",
-        f"{md.escape_md('📅 Presale:')} {md.escape_md('5 Jan 2026 · 18:00 UTC')}",
-        f"{md.escape_md('📈 Listing:')} {md.escape_md('6 Jan 2026 · 18:00 UTC')}",
-        f"{md.escape_md('💵 Price:')} {md.escape_md('$0.002 per TDL')}",
-        f"{md.escape_md('📊 Supply:')} {md.escape_md('10B TDL')}",
-        "",
-        md.escape_md("Join early to secure your position before the whitelist ends!"),
+        f"{md.escape_md('🟢 Status:')} {md.escape_md('Running')}",
+        f"{md.escape_md('⚙️ Platform:')} {md.escape_md('Smithii')}",
+        f"{md.escape_md('🎯 Soft Cap:')} {md.escape_md('2100 SOL')}",
+        f"{md.escape_md('🚀 Hard Cap:')} {md.escape_md('3500 SOL')}",
+        f"{md.escape_md('📅 Start:')} {md.escape_md('6 November 2025 · 18:00 UTC')}",
+        f"{md.escape_md('⏳ Ends:')} {md.escape_md('5 January 2026 · 18:00 UTC')}",
     ])
     await callback.message.answer(text, parse_mode=ParseMode.MARKDOWN_V2, disable_web_page_preview=True)
 

@@ -13,7 +13,7 @@ INITIAL_SETTINGS = {
     "contract_addresses": [
         "tdLS6cTi91yLm5BD5H2Ky5Wbs5YeTTHBqfGKjQX2hoz",
     ],
-    "explorer_url": None,
+    "explorer_url": "https://solscan.io/token/tdLS6cTi91yLm5BD5H2Ky5Wbs5YeTTHBqfGKjQX2hoz",
     "website": "https://splshield.app",
     "docs": "https://docs.splshield.app",
     "social_links": {

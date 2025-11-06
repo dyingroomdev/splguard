@@ -116,6 +116,14 @@ async def handle_quests(
 
     quests = await zealy_service.list_active_quests(session=session)
     if not quests:
+        try:
+            synced = await zealy_service.sync_remote_quests(session=session)
+        except zealy_service.ZealyNotConfiguredError:
+            synced = 0
+        if synced:
+            quests = await zealy_service.list_active_quests(session=session)
+
+    if not quests:
         await message.answer("No active Zealy quests yet. Check back soon!")
         return
 
@@ -268,10 +276,13 @@ async def handle_submit(
         else:
             payment_line = f"Payment: {md.inline_code(f'{amount:.2f} {currency}')}"
 
+    member_title = summary.get("title") if summary else None
     lines = [
         md.bold("Presale Verified ✅"),
         f"Transaction: {md.inline_code(tx_sig)}",
     ]
+    if member_title:
+        lines.append(f"Title: {md.escape_md(member_title)}")
     if payment_line:
         lines.append(payment_line)
     if settings.zealy_presale_xp_reward:

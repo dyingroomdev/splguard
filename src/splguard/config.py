@@ -46,6 +46,10 @@ class Settings(BaseSettings):
     )
     presale_min_sol_lamports: int = Field(default=0, alias="PRESALE_MIN_SOL_LAMPORTS")
     presale_min_usdc_amount: int = Field(default=0, alias="PRESALE_MIN_USDC_AMOUNT")
+    presale_soft_cap_sol: float = Field(default=0.0, alias="PRESALE_SOFT_CAP_SOL")
+    presale_hard_cap_sol: float = Field(default=0.0, alias="PRESALE_HARD_CAP_SOL")
+    presale_min_buy_sol: float = Field(default=0.0, alias="PRESALE_MIN_BUY_SOL")
+    presale_max_buy_sol: float = Field(default=0.0, alias="PRESALE_MAX_BUY_SOL")
 
     @field_validator("redis_url", mode="before")
     @classmethod

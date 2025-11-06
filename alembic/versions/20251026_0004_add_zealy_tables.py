@@ -13,7 +13,7 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision = "20251026_0004"
-down_revision = "20251024_0003_add_bio_to_team_members"
+down_revision = "20251024_0003"
 branch_labels = None
 depends_on = None
 
@@ -37,7 +37,7 @@ def upgrade() -> None:
         sa.Column("level", sa.Integer(), nullable=False, server_default="1"),
         sa.Column("tier", sa.String(length=64)),
         sa.Column("zealy_user_id", sa.String(length=128), unique=True),
-        sa.Column("metadata", sa.JSON(), nullable=False, server_default=sa.text("'{}'")),
+        sa.Column("metadata_json", sa.JSON(), nullable=False, server_default=sa.text("'{}'")),
         sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
         sa.Column("updated_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
     )
@@ -48,7 +48,7 @@ def upgrade() -> None:
         sa.Column("slug", sa.String(length=255), nullable=False, unique=True),
         sa.Column("zealy_quest_id", sa.String(length=128), unique=True),
         sa.Column("xp_value", sa.Integer(), nullable=False, server_default="0"),
-        sa.Column("metadata", sa.JSON(), nullable=False, server_default=sa.text("'{}'")),
+        sa.Column("metadata_json", sa.JSON(), nullable=False, server_default=sa.text("'{}'")),
         sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
         sa.Column("updated_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
     )
@@ -61,7 +61,7 @@ def upgrade() -> None:
         sa.Column("status", zealy_grant_status, nullable=False, server_default="pending"),
         sa.Column("tx_ref", sa.String(length=255)),
         sa.Column("xp_awarded", sa.Integer()),
-        sa.Column("metadata", sa.JSON(), nullable=False, server_default=sa.text("'{}'")),
+        sa.Column("metadata_json", sa.JSON(), nullable=False, server_default=sa.text("'{}'")),
         sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
         sa.Column("updated_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
         sa.UniqueConstraint("member_id", "quest_id", name="uq_zealy_grant_member_quest"),

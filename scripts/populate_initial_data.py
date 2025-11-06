@@ -96,18 +96,18 @@ async def populate_data():
             print("Creating presale record...")
             presale = Presale(
                 settings_id=settings.id,
-                status=PresaleStatus.UPCOMING,
-                platform="SPL Shield Platform",
+                status=PresaleStatus.ACTIVE,
+                platform="Smithii",
                 links={"presale": "https://presale.splshield.com/"},
-                start_time=datetime(2026, 1, 5, 18, 0, 0, tzinfo=timezone.utc),
-                end_time=datetime(2026, 1, 6, 18, 0, 0, tzinfo=timezone.utc),
-                hardcap=Decimal('500000'),
-                softcap=Decimal('250000'),
+                start_time=datetime(2025, 11, 6, 18, 0, 0, tzinfo=timezone.utc),
+                end_time=datetime(2026, 1, 5, 18, 0, 0, tzinfo=timezone.utc),
+                hardcap=Decimal('3500'),
+                softcap=Decimal('2100'),
                 faqs=[
                     {"question": "What is the presale price?", "answer": "$0.002 per TDL"},
                     {"question": "What is the total supply?", "answer": "10 Billion TDL tokens"},
-                    {"question": "When does the presale start?", "answer": "18:00 UTC, 5 January 2026"},
-                    {"question": "When does listing begin?", "answer": "18:00 UTC, 6 January 2026"},
+                    {"question": "When does the presale start?", "answer": "18:00 UTC, 6 November 2025"},
+                    {"question": "When does the presale end?", "answer": "18:00 UTC, 5 January 2026"},
                 ]
             )
             session.add(presale)

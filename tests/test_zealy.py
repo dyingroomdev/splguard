@@ -117,3 +117,25 @@ async def test_presale_verifier_requires_wallet() -> None:
     outcome = await verifier.verify("sig", None)
     assert outcome.ok is False
     assert outcome.reason == "wallet_not_linked"
+
+
+@pytest.mark.asyncio
+async def test_set_member_title(memory_session) -> None:
+    await zealy.bind_wallet(memory_session, telegram_id=999, wallet="B" * 44)
+    member, previous, updated = await zealy.set_member_title(
+        memory_session,
+        telegram_id=999,
+        title="Guardian of TDL",
+    )
+    assert previous is None
+    assert updated == "Guardian of TDL"
+    assert member.title == "Guardian of TDL"
+
+    member, previous, updated = await zealy.set_member_title(
+        memory_session,
+        telegram_id=999,
+        title=None,
+    )
+    assert previous == "Guardian of TDL"
+    assert updated is None
+    assert member.title is None

@@ -150,6 +150,18 @@ class ZealyClient:
     api_key: str
     base_url: str
 
+    async def get(self, path: str, params: Mapping[str, Any] | None = None) -> Mapping[str, Any]:
+        headers = {
+            "Authorization": f"Bearer {self.api_key}",
+            "Accept": "application/json",
+        }
+        async with httpx.AsyncClient(base_url=self.base_url, timeout=10.0) as client:
+            response = await client.get(path, params=params, headers=headers)
+            response.raise_for_status()
+            if response.content:
+                return response.json()
+            return {}
+
     async def post(self, path: str, payload: Mapping[str, Any] | None = None) -> Mapping[str, Any]:
         headers = {
             "Authorization": f"Bearer {self.api_key}",
@@ -272,7 +284,7 @@ async def get_or_create_member(session: AsyncSession, telegram_id: int) -> tuple
     if member:
         return member, False
 
-    member = ZealyMember(telegram_id=telegram_id, metadata={})
+    member = ZealyMember(telegram_id=telegram_id, metadata_json={})
     session.add(member)
     await session.commit()
     await session.refresh(member)
@@ -305,6 +317,20 @@ async def bind_wallet(
     await session.commit()
     await session.refresh(member)
     return member, "created" if created else "linked"
+
+
+async def set_member_title(
+    session: AsyncSession,
+    telegram_id: int,
+    title: str | None,
+) -> tuple[ZealyMember, str | None, str | None]:
+    member, _ = await get_or_create_member(session, telegram_id)
+    previous = member.title
+    normalized = title.strip() if title else None
+    member.title = normalized or None
+    await session.commit()
+    await session.refresh(member)
+    return member, previous, member.title
 
 
 async def list_active_quests(
@@ -359,6 +385,8 @@ async def get_member_summary(
         "xp": member.xp or 0,
         "level": member.level or calculate_level(member.xp or 0),
         "tier": member.tier,
+        "title": member.title,
+        "title_label": member.title or "",
         "tier_label": tier_label(member.tier),
         "privileges": tier_privileges(member.tier),
         "recent_rewards": recent_rewards,
@@ -381,7 +409,7 @@ async def get_or_create_quest(
         slug=slug,
         xp_value=xp_value,
         zealy_quest_id=zealy_quest_id,
-        metadata={},
+        metadata_json={},
     )
     session.add(quest)
     await session.commit()
@@ -403,7 +431,7 @@ async def record_grant(
         status=status,
         tx_ref=tx_ref,
         xp_awarded=xp_awarded if xp_awarded is not None else quest.xp_value,
-        metadata={},
+        metadata_json={},
     )
     session.add(grant)
     previous_tier = member.tier
@@ -635,3 +663,86 @@ async def dlq_snapshot(redis: Redis | None, limit: int = 5) -> dict[str, Any]:
             continue
     metrics_set("zealy_dlq_size", int(size))
     return {"size": int(size), "entries": entries}
+
+
+async def fetch_remote_quests() -> list[dict[str, Any]]:
+    _ensure_configured()
+    client = _client()
+    community_id = settings.zealy_community_id
+    if not community_id:
+        raise ZealyNotConfiguredError("ZEALY_COMMUNITY_ID is not configured.")
+    try:
+        data = await client.get(f"/communities/{community_id}/quests")
+    except httpx.HTTPError as exc:  # pragma: no cover
+        logger.warning("Failed to fetch quests from Zealy: %s", exc)
+        return []
+    except Exception:  # pragma: no cover
+        logger.exception("Unexpected error while fetching quests from Zealy")
+        return []
+
+    if isinstance(data, dict):
+        quests = data.get("quests")
+        if isinstance(quests, list):
+            return [quest for quest in quests if isinstance(quest, dict)]
+        return [data] if data else []
+    if isinstance(data, list):
+        return [quest for quest in data if isinstance(quest, dict)]
+    return []
+
+
+async def sync_remote_quests(
+    session: AsyncSession,
+    quests: list[dict[str, Any]] | None = None,
+) -> int:
+    try:
+        if quests is None:
+            quests = await fetch_remote_quests()
+    except ZealyNotConfiguredError:
+        raise
+    except Exception:
+        logger.exception("Failed retrieving Zealy quests.")
+        return 0
+
+    if not quests:
+        return 0
+
+    synced = 0
+    for quest in quests:
+        slug = quest.get("slug") or quest.get("handle") or quest.get("name")
+        if not slug:
+            continue
+        zealy_id = quest.get("id") or quest.get("questId")
+        xp_raw = quest.get("xpValue") or quest.get("xp") or 0
+        try:
+            xp_value = int(xp_raw)
+        except (TypeError, ValueError):
+            xp_value = 0
+
+        stmt = select(ZealyQuest).where(ZealyQuest.slug == slug).limit(1)
+        result = await session.execute(stmt)
+        quest_row = result.scalar_one_or_none()
+        if quest_row is None:
+            quest_row = ZealyQuest(
+                slug=slug,
+                zealy_quest_id=str(zealy_id) if zealy_id else None,
+                xp_value=xp_value,
+                metadata_json=quest,
+            )
+            session.add(quest_row)
+            synced += 1
+        else:
+            updated = False
+            if zealy_id and quest_row.zealy_quest_id != str(zealy_id):
+                quest_row.zealy_quest_id = str(zealy_id)
+                updated = True
+            if quest_row.xp_value != xp_value:
+                quest_row.xp_value = xp_value
+                updated = True
+            quest_row.metadata_json = quest
+            if updated:
+                synced += 1
+
+    await session.commit()
+    if synced:
+        metrics_increment("zealy_quests_synced", synced)
+    return synced
