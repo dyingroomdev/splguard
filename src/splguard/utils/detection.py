@@ -23,6 +23,11 @@ AD_KEYWORDS = [
     "giveaway",
 ]
 
+WHITELISTED_KEYWORDS = {
+    "airdrop": ["spl shield"],
+    "promo": ["spl shield"],
+}
+
 TG_INVITE_PATTERNS = [
     "t.me/joinchat",
     "t.me/+",
@@ -89,7 +94,11 @@ def ad_keyword_score(text: str) -> int:
     score = 0
     for keyword in AD_KEYWORDS:
         if keyword in normalized:
-            score += 1
+            blockers = WHITELISTED_KEYWORDS.get(keyword, [])
+            if blockers and not any(blocker in normalized for blocker in blockers):
+                score += 1
+            elif not blockers:
+                score += 1
     for pattern in TG_INVITE_PATTERNS:
         if pattern in normalized:
             score += 2

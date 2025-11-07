@@ -173,7 +173,7 @@ class ModerationService:
         allowed_domains = {domain.lower() for domain in allowed_domains if domain}
 
         allowed_link_map: dict[str, set[str]] = defaultdict(set)
-        trusted_links = set(app_settings.trusted_links or [])
+        trusted_links = set((app_settings.trusted_links or []))
         trusted_links.update(_trusted_links_from_file())
         for link in trusted_links:
             link = link.strip()
