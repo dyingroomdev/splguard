@@ -1,7 +1,11 @@
 from __future__ import annotations
 
+import json
+import logging
+from collections import defaultdict
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
+from pathlib import Path
 from typing import Any, Optional
 from urllib.parse import urlparse
 
@@ -12,6 +16,8 @@ from sqlalchemy.orm import selectinload
 
 from ..config import settings as app_settings
 from ..models import ModerationRule, Settings, UserInfraction
+
+logger = logging.getLogger(__name__)
 
 CACHE_TTL_SECONDS = 60
 _PROFILE_CACHE: tuple[datetime, ModerationProfile] | None = None
@@ -36,6 +42,7 @@ class ModerationProfile:
     strike_ttl: int
     mute_seconds: int
     admin_channel_id: Optional[int]
+    allowed_link_domains: dict[str, set[str]]
 
 
 class ModerationAction:
@@ -59,6 +66,58 @@ def _domain_from_url(url: str | None) -> Optional[str]:
         return None
     parsed = urlparse(url if url.startswith(("http://", "https://")) else f"http://{url}")
     return parsed.hostname.lower() if parsed.hostname else None
+
+
+def _trusted_domains_from_file() -> set[str]:
+    file_path = app_settings.trusted_domains_file
+    if not file_path:
+        return set()
+    path = Path(file_path)
+    if not path.exists():
+        return set()
+    try:
+        data = json.loads(path.read_text())
+    except Exception:  # pragma: no cover - safeguard against malformed files
+        logger.exception("Unable to parse trusted domains file: %s", path)
+        return set()
+
+    if isinstance(data, dict):
+        candidate = data.get("domains", [])
+    else:
+        candidate = data
+
+    domains: set[str] = set()
+    if isinstance(candidate, (list, tuple, set)):
+        for item in candidate:
+            if isinstance(item, str) and item.strip():
+                domains.add(item.strip().lower())
+    return domains
+
+
+def _trusted_links_from_file() -> set[str]:
+    file_path = app_settings.trusted_links_file
+    if not file_path:
+        return set()
+    path = Path(file_path)
+    if not path.exists():
+        return set()
+    try:
+        data = json.loads(path.read_text())
+    except Exception:  # pragma: no cover
+        logger.exception("Unable to parse trusted links file: %s", path)
+        return set()
+
+    if isinstance(data, dict):
+        candidate = data.get("links", [])
+    else:
+        candidate = data
+
+    links: set[str] = set()
+    if isinstance(candidate, (list, tuple, set)):
+        for item in candidate:
+            if isinstance(item, str) and item.strip():
+                links.add(item.strip().lower())
+    return links
 
 
 class ModerationService:
@@ -109,7 +168,21 @@ class ModerationService:
             if domain:
                 allowed_domains.add(domain)
 
-        allowed_domains = {domain.lower() for domain in allowed_domains}
+        allowed_domains.update(app_settings.trusted_domains)
+        allowed_domains.update(_trusted_domains_from_file())
+        allowed_domains = {domain.lower() for domain in allowed_domains if domain}
+
+        allowed_link_map: dict[str, set[str]] = defaultdict(set)
+        trusted_links = set(app_settings.trusted_links or [])
+        trusted_links.update(_trusted_links_from_file())
+        for link in trusted_links:
+            link = link.strip()
+            if not link:
+                continue
+            domain = _domain_from_url(link)
+            if domain:
+                allowed_link_map[domain.lower()].add(link.lower())
+        allowed_link_map = {domain: values for domain, values in allowed_link_map.items()}
 
         probation_seconds = rule.new_user_probation_duration if rule else 0
         profile = ModerationProfile(
@@ -127,6 +200,7 @@ class ModerationService:
             strike_ttl=int(thresholds.get("ttl_seconds", DEFAULT_THRESHOLDS["ttl_seconds"])),
             mute_seconds=int(thresholds.get("mute_seconds", DEFAULT_THRESHOLDS["mute_seconds"])),
             admin_channel_id=app_settings.admin_channel_id or app_settings.owner_id,
+            allowed_link_domains=allowed_link_map,
         )
 
         _PROFILE_CACHE = (now + timedelta(seconds=CACHE_TTL_SECONDS), profile)

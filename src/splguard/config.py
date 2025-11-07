@@ -51,6 +51,11 @@ class Settings(BaseSettings):
     presale_min_buy_sol: float = Field(default=0.0, alias="PRESALE_MIN_BUY_SOL")
     presale_max_buy_sol: float = Field(default=0.0, alias="PRESALE_MAX_BUY_SOL")
 
+    trusted_domains: list[str] = Field(default_factory=list, alias="TRUSTED_DOMAINS")
+    trusted_domains_file: str | None = Field(default="config/trusted_domains.json", alias="TRUSTED_DOMAINS_FILE")
+    trusted_links: list[str] = Field(default_factory=list, alias="TRUSTED_LINKS")
+    trusted_links_file: str | None = Field(default="config/trusted_links.json", alias="TRUSTED_LINKS_FILE")
+
 
     @field_validator("redis_url", mode="before")
     @classmethod

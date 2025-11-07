@@ -124,13 +124,20 @@ class ModerationMiddleware(BaseMiddleware):
         mentions = count_mentions(event)
         has_media = contains_media(event)
         text_blob = " ".join(filter(None, [event.text, event.caption]))
+        text_blob_lower = text_blob.lower()
 
         violation_reason: str | None = None
 
         if domains:
-            unauthorized = [
-                domain for domain in domains if not domain_in_allowlist(domain, profile.allowed_domains)
-            ]
+            unauthorized: list[str] = []
+            for domain in domains:
+                if domain_in_allowlist(domain, profile.allowed_domains):
+                    continue
+                allowed_variants = profile.allowed_link_domains.get(domain, set())
+                if allowed_variants:
+                    if any(link in text_blob_lower for link in allowed_variants):
+                        continue
+                unauthorized.append(domain)
             if unauthorized:
                 violation_reason = f"Links from unapproved domains: {', '.join(unauthorized)}"
                 metrics_increment("link_spam_hits")
