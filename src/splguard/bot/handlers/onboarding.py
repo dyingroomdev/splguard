@@ -98,8 +98,7 @@ def _welcome_text(username: str | None, title: str | None) -> str:
             "• Real-time presale monitoring",
             "",
             "💎 <b>Token Essentials</b>",
-            "• <b>Presale:</b> LIVE now — "
-            '<a href="https://presale.splshield.com/">Join Here</a>',
+            "• <b>Presale:</b> LIVE now — check the pinned message to learn more",
             "• <b>Ends:</b> <i>5 Jan 2026</i>",
             "• <b>Presale Price:</b> <code>0.1 SOL = 75 018.75 TDL</code>",
             "",
@@ -107,8 +106,7 @@ def _welcome_text(username: str | None, title: str | None) -> str:
             "• <b>Ticker:</b> TDL",
             "• <b>Total Supply:</b> <code>10 B TDL</code>",
             f"• <b>Contract Address:</b> <code>{contract}</code>",
-            "• <b>Presale:</b> "
-            '<a href="https://tools.smithii.io/launch/$TDL-Presale">Smithii Launchpad</a>',
+            "• <b>More info:</b> pinned message has the latest presale links",
             "",
             "🚀 <b>Quick commands</b>",
             "• Use <code>/commands</code> to explore the bot",

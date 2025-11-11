@@ -23,22 +23,9 @@ AD_KEYWORDS = [
     "giveaway",
 ]
 
-WHITELISTED_AD_KEYWORDS = {
-    "airdrop",
-    "buy my token",
-    "free mint",
-    "pump",
-    "referral",
-    "invite link",
-    "promo",
-    "earn passive income",
-    "giveaway",
-}
+WHITELISTED_AD_KEYWORDS: set[str] = set()
 
-WHITELISTED_KEYWORDS = {
-    "airdrop": ["spl shield"],
-    "promo": ["spl shield"],
-}
+WHITELISTED_KEYWORDS: dict[str, list[str]] = {}
 
 TG_INVITE_PATTERNS = [
     "t.me/joinchat",
