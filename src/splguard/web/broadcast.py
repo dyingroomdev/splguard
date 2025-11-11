@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import re
 import secrets
 from dataclasses import dataclass
 from typing import Any
@@ -9,7 +10,6 @@ import discord
 import httpx
 from fastapi import (
     APIRouter,
-    Depends,
     File,
     Form,
     HTTPException,
@@ -238,6 +238,10 @@ async def broadcast_form(request: Request) -> HTMLResponse:
     options = "\n".join(
         f'<option value="{channel["id"]}">#{channel["name"]}</option>' for channel in channels
     )
+    channel_json = json.dumps(channels)
+    options = "\n".join(
+        f'<option value="#{channel["name"]}">#{channel["name"]}</option>' for channel in channels
+    )
     html = f"""
     <!doctype html>
     <html lang="en">
@@ -320,11 +324,13 @@ async def broadcast_form(request: Request) -> HTMLResponse:
             <p style="opacity:0.8;">Signed in as <strong>{user.display}</strong>. <small><form method="post" action="/broadcast/logout" style="display:inline;"><button class="secondary" style="padding:0.25rem 0.75rem;margin-left:0.5rem;">Log out</button></form></small></p>
             <form method="post" action="/broadcast/send" enctype="multipart/form-data">
                 <label for="channel">Channel</label>
-                <select id="channel" name="channel_id" required>
+                <input type="text" id="channel" name="channel_name" list="channel-options" placeholder="#announcements" autocomplete="off" required />
+                <datalist id="channel-options">
                     {options}
-                </select>
+                </datalist>
+                <input type="hidden" id="channel_id" name="channel_id" />
                 <label for="message">Message</label>
-                <textarea id="message" name="message" placeholder="Type your announcement..."></textarea>
+                <textarea id="message" name="message" placeholder="Type your announcement...&#10;Mentions: use #channel-name, @everyone, or @here."></textarea>
                 <div class="checkbox">
                     <input type="checkbox" id="use_embed" name="use_embed" value="1" checked />
                     <label for="use_embed" style="margin:0;">Render using SPL Shield embed</label>
@@ -335,6 +341,21 @@ async def broadcast_form(request: Request) -> HTMLResponse:
                     <button type="submit" class="primary">Send Broadcast</button>
                 </div>
             </form>
+            <script type="application/json" id="channel-data">{channel_json}</script>
+            <script>
+                (function() {{
+                    const channelInput = document.getElementById("channel");
+                    const channelIdInput = document.getElementById("channel_id");
+                    const channels = JSON.parse(document.getElementById("channel-data").textContent);
+                    function updateChannelId() {{
+                        const value = channelInput.value.trim().replace(/^#/,'').toLowerCase();
+                        const match = channels.find((c) => c.name.toLowerCase() === value);
+                        channelIdInput.value = match ? match.id : "";
+                    }}
+                    channelInput.addEventListener("input", updateChannelId);
+                    updateChannelId();
+                }})();
+            </script>
         </div>
     </body>
     </html>
@@ -345,7 +366,8 @@ async def broadcast_form(request: Request) -> HTMLResponse:
 @router.post("/send")
 async def send_broadcast(
     request: Request,
-    channel_id: str = Form(...),
+    channel_id: str = Form(""),
+    channel_name: str = Form(""),
     message: str = Form(""),
     use_embed: str = Form("0"),
     image: UploadFile | None = File(None),
@@ -355,6 +377,14 @@ async def send_broadcast(
         return RedirectResponse("/broadcast/login")
     if not settings.discord_bot_token:
         raise HTTPException(status_code=503, detail="Discord bot token missing.")
+
+    channels = await _fetch_channels()
+    lookup = {ch["name"].lower(): ch["id"] for ch in channels}
+    resolved_channel_id = channel_id
+    if not resolved_channel_id and channel_name:
+        resolved_channel_id = lookup.get(channel_name.strip().lstrip("#").lower(), "")
+    if not resolved_channel_id:
+        raise HTTPException(status_code=400, detail="Select a valid channel from the list.")
 
     content = message or ""
     embed_flag = use_embed == "1"
@@ -371,12 +401,13 @@ async def send_broadcast(
 
     try:
         await _send_discord_message(
-            channel_id=channel_id,
+            channel_id=resolved_channel_id,
             text=content,
             file_bytes=file_data,
             filename=filename,
             mime_type=mime_type,
             use_embed=embed_flag,
+            channel_lookup=lookup,
         )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
@@ -392,8 +423,11 @@ async def _send_discord_message(
     filename: str | None,
     mime_type: str | None,
     use_embed: bool,
+    channel_lookup: dict[str, str] | None = None,
 ) -> None:
     content = text.replace("\r\n", "\n").strip()
+    if channel_lookup:
+        content = _replace_channel_mentions(content, channel_lookup)
     if len(content) > 1900:
         raise ValueError("Message too long; please keep it below 1,900 characters.")
     if not content and file_bytes is None:
@@ -441,3 +475,15 @@ async def _send_discord_message(
             )
     if resp.status_code >= 400:
         raise HTTPException(status_code=502, detail="Discord rejected the broadcast.")
+
+
+def _replace_channel_mentions(text: str, channel_lookup: dict[str, str]) -> str:
+    if not text:
+        return text
+
+    def _sub(match: re.Match[str]) -> str:
+        name = match.group(1).lower()
+        channel_id = channel_lookup.get(name)
+        return f"<#{channel_id}>" if channel_id else match.group(0)
+
+    return re.sub(r"#([a-zA-Z0-9_\-]+)", _sub, text)
