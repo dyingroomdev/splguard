@@ -1,4 +1,4 @@
-#!/home/dyingroom/soldev/splguard/.venv/bin/python3
+#!/home/dyingroom/soldev/splguard/.venv/bin/python
 import sys
 from splguard.main import run
 if __name__ == '__main__':

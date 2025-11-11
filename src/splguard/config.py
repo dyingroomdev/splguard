@@ -17,6 +17,29 @@ class Settings(BaseSettings):
     owner_id: int = Field(alias="OWNER_ID")
     admin_channel_id: int | None = Field(default=None, alias="ADMIN_CHANNEL_ID")
     admin_ids: list[int] = Field(default_factory=list, alias="ADMIN_IDS")
+    session_secret: str | None = Field(default=None, alias="SESSION_SECRET")
+    discord_bot_token: str | None = Field(default=None, alias="DISCORD_BOT_TOKEN")
+    discord_guild_id: int | None = Field(default=None, alias="DISCORD_GUILD_ID")
+    discord_welcome_channel_id: int | None = Field(
+        default=None, alias="DISCORD_WELCOME_CHANNEL_ID"
+    )
+    discord_admin_ids: list[int] = Field(default_factory=list, alias="DISCORD_ADMIN_IDS")
+    discord_say_admin_role_id: int | None = Field(
+        default=None, alias="DISCORD_SAY_ADMIN_ROLE_ID"
+    )
+    discord_client_id: str | None = Field(default=None, alias="DISCORD_CLIENT_ID")
+    discord_client_secret: str | None = Field(default=None, alias="DISCORD_CLIENT_SECRET")
+    discord_redirect_uri: str | None = Field(default=None, alias="DISCORD_REDIRECT_URI")
+    discord_rules_channel_id: int | None = Field(default=None, alias="DISCORD_RULES_CHANNEL_ID")
+    discord_presale_info_channel_id: int | None = Field(
+        default=None, alias="DISCORD_PRESALE_INFO_CHANNEL_ID"
+    )
+    discord_announcement_channel_id: int | None = Field(
+        default=None, alias="DISCORD_ANNOUNCEMENT_CHANNEL_ID"
+    )
+    discord_roadmap_channel_id: int | None = Field(
+        default=None, alias="DISCORD_ROADMAP_CHANNEL_ID"
+    )
     sentry_dsn: str | None = Field(default=None, alias="SENTRY_DSN")
     presale_api_url: str | None = Field(default=None, alias="PRESALE_API_URL")
     presale_refresh_seconds: int = Field(default=60, alias="PRESALE_REFRESH_SECONDS")
@@ -64,7 +87,7 @@ class Settings(BaseSettings):
             return None
         return str(value)
 
-    @field_validator("admin_ids", mode="before")
+    @field_validator("admin_ids", "discord_admin_ids", mode="before")
     @classmethod
     def _split_admin_ids(cls, value: Any) -> list[int]:
         if value in (None, "", []):

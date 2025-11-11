@@ -3,15 +3,16 @@ from __future__ import annotations
 from fastapi import FastAPI, HTTPException, Request
 from sqlalchemy import text
 
-from .db import AsyncSessionMaker
-from .redis import get_redis_client
-from .config import settings
-from .services import zealy as zealy_service
+from ..db import AsyncSessionMaker
+from ..redis import get_redis_client
+from ..config import settings
+from ..services import zealy as zealy_service
+from .broadcast import router as broadcast_router
 
 
 def create_app() -> FastAPI:
-    """Create FastAPI application that exposes basic health endpoint."""
-    app = FastAPI(title="SplGuard Health")
+    """Create FastAPI application that exposes health, webhooks, and broadcast UI."""
+    app = FastAPI(title="SplGuard API")
 
     @app.get("/healthz", tags=["health"])
     @app.get("/health", tags=["health"])
@@ -67,6 +68,8 @@ def create_app() -> FastAPI:
 
         handled = await zealy_service.process_event(event_name, payload)
         return {"ok": handled}
+
+    app.include_router(broadcast_router)
 
     return app
 

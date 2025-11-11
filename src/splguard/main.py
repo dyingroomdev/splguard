@@ -10,6 +10,7 @@ from aiogram.enums.parse_mode import ParseMode
 from .bot import router
 from .bot.middlewares import DatabaseSessionMiddleware, ModerationMiddleware, RedisMiddleware
 from .config import settings
+from .discordbot import DiscordBotRunner
 from .logging_setup import configure_logging
 from .tasks.presale_monitor import PresaleMonitor
 from .version import get_version
@@ -52,11 +53,21 @@ async def _run_polling() -> None:
     dp.startup.register(presale_monitor.start)
     dp.shutdown.register(presale_monitor.stop)
     dp.include_router(router)
+    discord_runner: DiscordBotRunner | None = None
+    if settings.discord_bot_token:
+        discord_runner = DiscordBotRunner()
 
     logger.info("Starting bot polling...")
     await bot.delete_webhook(drop_pending_updates=True)
     # Enable chat_member updates to receive new member notifications
-    await dp.start_polling(bot, allowed_updates=dp.resolve_used_update_types())
+    tasks = [dp.start_polling(bot, allowed_updates=dp.resolve_used_update_types())]
+    if discord_runner:
+        tasks.append(discord_runner.start())
+    try:
+        await asyncio.gather(*tasks)
+    finally:
+        if discord_runner:
+            await discord_runner.stop()
 
 
 def run() -> None:
