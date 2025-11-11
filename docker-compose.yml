@@ -17,16 +17,16 @@ services:
 
   web:
     build: .
-    command: ["uvicorn", "splguard.web:app", "--host", "0.0.0.0", "--port", "8101"]
+    command: ["uvicorn", "splguard.web:app", "--host", "0.0.0.0", "--port", "8105"]
     env_file: .env
     depends_on:
       - redis
     ports:
-      - "8101:8101"
+      - "${WEB_HOST_PORT:-8105}:8105"
     volumes:
       - ./splguard.db:/app/splguard.db
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:8101/healthz || exit 1"]
+      test: ["CMD-SHELL", "curl -f http://localhost:8105/healthz || exit 1"]
       interval: 30s
       timeout: 5s
       retries: 3
@@ -34,4 +34,4 @@ services:
   redis:
     image: redis:7-alpine
     ports:
-      - "56379:6379"
+      - "6379:6379"

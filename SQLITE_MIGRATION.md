@@ -179,8 +179,8 @@ Note: This requires manual SQL conversion and is error-prone. Option 1 is recomm
 ps aux | grep splguard-bot
 
 # Test web service
-curl http://localhost:8101/healthz
-curl http://localhost:8101/readyz
+curl http://localhost:8105/healthz
+curl http://localhost:8105/readyz
 ```
 
 ### Docker
@@ -189,7 +189,7 @@ curl http://localhost:8101/readyz
 docker-compose ps
 
 # Manual health check
-docker-compose exec web curl http://localhost:8101/healthz
+docker-compose exec web curl http://localhost:8105/healthz
 ```
 
 ## Redis Configuration

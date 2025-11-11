@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-export PORT=${PORT:-8101}
+export PORT=${PORT:-8105}
 export UVICORN_PORT=${UVICORN_PORT:-$PORT}
 
 if docker compose version >/dev/null 2>&1; then

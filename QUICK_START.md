@@ -55,10 +55,10 @@ asyncio.run(test())
 ### Check Web Service
 ```bash
 # Local
-curl http://localhost:8101/healthz
+curl http://localhost:8105/healthz
 
 # Docker
-docker-compose exec web curl http://localhost:8101/healthz
+docker-compose exec web curl http://localhost:8105/healthz
 ```
 
 ## Next Steps

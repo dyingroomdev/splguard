@@ -185,7 +185,7 @@ presales
 The `docker-compose.yml` includes:
 
 1. **bot** - Main Telegram bot service
-2. **web** - FastAPI health/admin web interface (port 8101)
+2. **web** - FastAPI health/admin web interface (port 8105)
 3. **redis** - Caching and rate limiting (port 56379)
 
 ## 📝 Useful Commands

@@ -311,7 +311,7 @@ Admin commands (only for configured admins):
 5. **Enable firewall**:
    ```bash
    sudo ufw allow 22
-   sudo ufw allow 8101  # If using web interface
+   sudo ufw allow 8105  # If using web interface
    sudo ufw enable
    ```
 
@@ -320,6 +320,12 @@ Admin commands (only for configured admins):
    git pull
    docker-compose up -d --build
    ```
+
+## 🌐 Domain & OAuth Setup
+
+- Production web access is served at **https://dc.splshield.com**. Create a DNS record pointing `dc.splshield.com` to your server’s public IP and ensure TLS termination (Caddy/NGINX/Traefik + Let’s Encrypt) is configured for that host.
+- Discord OAuth must use `https://dc.splshield.com/broadcast/callback` as the Redirect URI. Add this exact URL in the Discord Developer Portal under *OAuth2 → Redirects*, and set `DISCORD_REDIRECT_URI` in `.env` to the same value.
+- For local or staging environments, add additional redirect URLs to the portal and swap the `.env` value when testing (e.g., `http://localhost:8105/broadcast/callback`).
 
 ## 📞 Support
 
