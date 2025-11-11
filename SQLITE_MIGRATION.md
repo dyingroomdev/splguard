@@ -200,9 +200,9 @@ Redis is optional but recommended for:
 - User probation caching
 
 To enable Redis:
-1. Ensure Redis container is running: `docker-compose up -d redis`
-2. Update `.env`: `REDIS_URL=redis://localhost:56379/0`
-3. For Docker: `REDIS_URL=redis://redis:6379/0`
+1. Ensure your shared Redis (e.g., `redis-stack` on pg-network) is running.
+2. Update `.env`: `REDIS_URL=redis://redis-stack:6379/0` (adjust hostname as needed).
+3. If you bring your own Redis container, start it separately and point `REDIS_URL` to its address.
 
 To disable Redis:
 1. Set `REDIS_URL=` (empty) in `.env`

@@ -71,7 +71,7 @@ docker-compose up --build
 ```
 
 This starts the bot and FastAPI health endpoint. PostgreSQL is expected to be available already on the external `pg-network` (e.g. your existing `some-postgres` container). Update your `.env` `DATABASE_URL` to point at that host, such as `postgresql+asyncpg://user:pass@some-postgres:5432/splguard`.
-Likewise, point `REDIS_URL` at your existing Redis instance on the same network (for example `redis://big-bear-redis:6379/0`).
+Likewise, point `REDIS_URL` at your existing Redis instance on the same network (for example `redis://redis-stack:56379/0` or whichever host/port you expose).
 Make sure the external Docker network `pg-network` exists (create it once with `docker network create pg-network`) and that your existing Postgres and Redis containers are attached to it.
 
 ## Database & migrations

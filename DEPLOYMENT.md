@@ -75,7 +75,7 @@ OWNER_ID=123456789                      # Your Telegram user ID
 ```bash
 ADMIN_IDS="123456789,987654321"        # Comma-separated admin IDs
 ADMIN_CHANNEL_ID=-1001234567890         # Admin log channel
-REDIS_URL=redis://redis:6379            # Redis for caching
+REDIS_URL=redis://redis-stack:6379      # Redis host on pg-network
 ```
 
 ## 🐳 Docker Commands
@@ -234,7 +234,7 @@ docker-compose up -d
 **Production:**
 ```bash
 DATABASE_URL=sqlite+aiosqlite:////app/splguard.db
-REDIS_URL=redis://redis:6379
+REDIS_URL=redis://redis-stack:6379
 SENTRY_DSN=your_sentry_dsn_here
 ```
 

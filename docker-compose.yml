@@ -4,11 +4,11 @@ services:
   bot:
     build: .
     command: ["splguard-bot"]
-    env_file: .env
-    depends_on:
-      - redis
+    env_file: ./src/splguard/.env
     volumes:
       - ./splguard.db:/app/splguard.db
+    networks:
+      - pg-network
     healthcheck:
       test: ["CMD-SHELL", "pgrep -f splguard-bot || exit 1"]
       interval: 30s
@@ -18,20 +18,20 @@ services:
   web:
     build: .
     command: ["uvicorn", "splguard.web:app", "--host", "0.0.0.0", "--port", "8105"]
-    env_file: .env
-    depends_on:
-      - redis
+    env_file: ./src/splguard/.env
     ports:
       - "${WEB_HOST_PORT:-8105}:8105"
     volumes:
       - ./splguard.db:/app/splguard.db
+    networks:
+      - pg-network
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:8105/healthz || exit 1"]
       interval: 30s
       timeout: 5s
       retries: 3
 
-  redis:
-    image: redis:7-alpine
-    ports:
-      - "6379:6379"
+# External Redis/network configuration
+networks:
+  pg-network:
+    external: true

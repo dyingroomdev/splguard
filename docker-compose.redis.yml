@@ -1,0 +1,12 @@
+version: "3.9"
+
+services:
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    networks:
+      - pg-network
+
+networks:
+  pg-network:
+    external: true
