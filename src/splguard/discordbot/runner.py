@@ -4,7 +4,6 @@ import logging
 from datetime import datetime
 
 import discord
-from discord import app_commands
 from discord.ext import commands
 
 from ..config import settings
@@ -23,7 +22,6 @@ class DiscordBotRunner:
         self._guild_id = settings.discord_guild_id
         self._guild_object = discord.Object(id=self._guild_id) if self._guild_id else None
         self._welcome_channel_id = settings.discord_welcome_channel_id
-        self._admin_ids = set(settings.discord_admin_ids)
         self._presale_price = "0.1 SOL = 75 018.75 TDL"
         self._token_logo_url = (
             "https://media.discordapp.net/attachments/1437749931187245070/"
@@ -38,7 +36,6 @@ class DiscordBotRunner:
             "announcement": self._channel_mention(settings.discord_announcement_channel_id),
             "roadmap": self._channel_mention(settings.discord_roadmap_channel_id),
         }
-        self._admin_role_id = settings.discord_say_admin_role_id
 
         self._register_events()
         self._register_commands()
@@ -102,72 +99,6 @@ class DiscordBotRunner:
             view = self._build_contract_view(mint)
             await interaction.response.send_message(embed=embed, view=view)
 
-        @self.bot.tree.command(
-            name="say",
-            description="Admin broadcast to a selected text channel.",
-            guild=self._guild_object,
-        )
-        @app_commands.describe(
-            channel="Target text channel",
-            message="Message to send (set blank to use the rich editor).",
-            attachment="Optional image or file to include in the post.",
-            use_embed="Render the text inside a styled embed.",
-            use_modal="Open a rich text editor (multi-line) before sending.",
-        )
-        async def say(
-            interaction: discord.Interaction,
-            channel: discord.TextChannel,
-            message: str | None = None,
-            attachment: discord.Attachment | None = None,
-            use_embed: bool = False,
-            use_modal: bool = False,
-        ) -> None:
-            if not self._is_admin(interaction):
-                await interaction.response.send_message(
-                    "You do not have permission to run this command.", ephemeral=True
-                )
-                return
-            if self._guild_id and channel.guild.id != self._guild_id:
-                await interaction.response.send_message(
-                    "This channel is not part of the configured SPL Shield server.",
-                    ephemeral=True,
-                )
-                return
-            text = message or ""
-            if use_modal or (not text.strip() and attachment is None):
-                view = _BroadcastModalLauncher(
-                    runner=self,
-                    channel=channel,
-                    attachment=attachment,
-                    use_embed=use_embed,
-                    initial_text=text,
-                    invoker_id=interaction.user.id,
-                )
-                await interaction.response.send_message(
-                    "Click **Open Editor** to paste your formatted message.",
-                    ephemeral=True,
-                    view=view,
-                )
-                return
-            await interaction.response.defer(ephemeral=True)
-            try:
-                await self._dispatch_broadcast(
-                    channel=channel,
-                    text=text,
-                    attachment=attachment,
-                    use_embed=use_embed,
-                )
-            except ValueError as exc:
-                await interaction.followup.send(str(exc), ephemeral=True)
-                return
-            except discord.DiscordException as exc:
-                await interaction.followup.send(
-                    f"Discord rejected the broadcast: {exc}", ephemeral=True
-                )
-                return
-            await interaction.followup.send(
-                f"Posted your message to {channel.mention}.", ephemeral=True
-            )
 
     async def start(self) -> None:
         if not self._token:
@@ -193,17 +124,6 @@ class DiscordBotRunner:
         if isinstance(channel, (discord.TextChannel, discord.Thread)):
             content, embed = self._build_welcome_message(member)
             await channel.send(content, embed=embed)
-
-    def _is_admin(self, interaction: discord.Interaction) -> bool:
-        user = interaction.user
-        if isinstance(user, discord.Member):
-            if self._admin_role_id and any(role.id == self._admin_role_id for role in user.roles):
-                return True
-            if user.guild_permissions.administrator:
-                return True
-        if not self._admin_ids:
-            return False
-        return user.id in self._admin_ids
 
     def _build_welcome_message(self, member: discord.Member) -> tuple[str, discord.Embed]:
         rules = self._channel_mentions["rules"] or "#rules"
@@ -329,121 +249,3 @@ class DiscordBotRunner:
         embed.set_author(name="SPL Shield Broadcast")
         embed.set_footer(text="SPL Shield · Official Updates")
         return embed
-
-    async def _dispatch_broadcast(
-        self,
-        channel: discord.TextChannel,
-        text: str,
-        attachment: discord.Attachment | None,
-        use_embed: bool,
-    ) -> None:
-        message_text = text.replace("\r\n", "\n")
-        trimmed = message_text.strip()
-        if not trimmed and attachment is None:
-            raise ValueError("Provide a message or attach a file to broadcast.")
-        if len(message_text) > 1900:
-            raise ValueError("Message too long; please keep it below 1,900 characters.")
-        file = None
-        if attachment is not None:
-            file = await attachment.to_file()
-        send_kwargs: dict[str, object] = {}
-        embed: discord.Embed | None = None
-        if use_embed:
-            embed = self._build_say_embed(message_text)
-            send_kwargs["embed"] = embed
-        elif message_text:
-            send_kwargs["content"] = message_text
-        if file:
-            if embed and self._is_image_filename(file.filename):
-                embed.set_image(url=f"attachment://{file.filename}")
-            send_kwargs["file"] = file
-        await channel.send(**send_kwargs)
-
-
-class _BroadcastModal(discord.ui.Modal, title="SPL Shield Broadcast"):
-    def __init__(
-        self,
-        runner: DiscordBotRunner,
-        channel: discord.TextChannel,
-        attachment: discord.Attachment | None,
-        use_embed: bool,
-        initial_text: str,
-    ) -> None:
-        super().__init__()
-        self._runner = runner
-        self._channel = channel
-        self._attachment = attachment
-        self._use_embed = use_embed
-        self.message_input = discord.ui.TextInput(
-            label="Message",
-            style=discord.TextStyle.paragraph,
-            required=False,
-            default=initial_text,
-            placeholder="Paste your richly formatted text here…",
-        )
-        self.add_item(self.message_input)
-
-    async def on_submit(self, interaction: discord.Interaction) -> None:
-        text = self.message_input.value or ""
-        if not text.strip() and self._attachment is None:
-            await interaction.response.send_message(
-                "Please provide text in the editor or attach a file before submitting.",
-                ephemeral=True,
-            )
-            return
-        await interaction.response.defer(ephemeral=True)
-        try:
-            await self._runner._dispatch_broadcast(
-                channel=self._channel,
-                text=text,
-                attachment=self._attachment,
-                use_embed=self._use_embed,
-            )
-        except ValueError as exc:
-            await interaction.followup.send(str(exc), ephemeral=True)
-            return
-        except discord.DiscordException as exc:
-            await interaction.followup.send(
-                f"Discord rejected the broadcast: {exc}", ephemeral=True
-            )
-            return
-        await interaction.followup.send(
-            f"Posted your message to {self._channel.mention}.", ephemeral=True
-        )
-
-
-class _BroadcastModalLauncher(discord.ui.View):
-    def __init__(
-        self,
-        runner: DiscordBotRunner,
-        channel: discord.TextChannel,
-        attachment: discord.Attachment | None,
-        use_embed: bool,
-        initial_text: str,
-        invoker_id: int,
-    ) -> None:
-        super().__init__(timeout=300)
-        self._runner = runner
-        self._channel = channel
-        self._attachment = attachment
-        self._use_embed = use_embed
-        self._initial_text = initial_text
-        self._invoker_id = invoker_id
-
-    @discord.ui.button(label="Open Editor", style=discord.ButtonStyle.primary)
-    async def open_editor(
-        self, interaction: discord.Interaction, button: discord.ui.Button
-    ) -> None:
-        if interaction.user.id != self._invoker_id:
-            await interaction.response.send_message(
-                "Only the admin who ran the command can open this editor.", ephemeral=True
-            )
-            return
-        modal = _BroadcastModal(
-            runner=self._runner,
-            channel=self._channel,
-            attachment=self._attachment,
-            use_embed=self._use_embed,
-            initial_text=self._initial_text,
-        )
-        await interaction.response.send_modal(modal)
