@@ -439,6 +439,8 @@ async def _send_discord_message(
         embed = DiscordBotRunner._build_say_embed(content or "\u200b")
         embed_payload = embed.to_dict()
         payload["embeds"] = [embed_payload]
+        if content:
+            payload["content"] = content
     elif content:
         payload["content"] = content
 
@@ -481,9 +483,17 @@ def _replace_channel_mentions(text: str, channel_lookup: dict[str, str]) -> str:
     if not text:
         return text
 
-    def _sub(match: re.Match[str]) -> str:
-        name = match.group(1).lower()
-        channel_id = channel_lookup.get(name)
-        return f"<#{channel_id}>" if channel_id else match.group(0)
+    pattern = r"#([a-zA-Z0-9_\-]+)|(\\?@everyone)|(\\?@here)"
 
-    return re.sub(r"#([a-zA-Z0-9_\-]+)", _sub, text)
+    def _sub(match: re.Match[str]) -> str:
+        if match.group(1):
+            name = match.group(1).lower()
+            channel_id = channel_lookup.get(name)
+            return f"<#{channel_id}>" if channel_id else match.group(0)
+        if match.group(2):
+            return "@everyone"
+        if match.group(3):
+            return "@here"
+        return match.group(0)
+
+    return re.sub(pattern, _sub, text)
