@@ -20,6 +20,7 @@ from ...utils import markdown as md
 
 logger = logging.getLogger(__name__)
 router = Router(name="onboarding")
+WELCOME_DEDUP_TTL = 900  # seconds
 
 
 def _coerce_status(value: ChatMemberStatus | str | None) -> ChatMemberStatus | None:
@@ -150,6 +151,9 @@ async def handle_member_update(
     user = event.new_chat_member.user
     if user.is_bot:
         return
+    if await _already_welcomed(redis, event.chat.id, user.id):
+        logger.debug("Skipping duplicate welcome (chat_member path)", extra={"chat_id": event.chat.id, "user_id": user.id})
+        return
 
     content_service = ContentService(session=session, redis=redis)
     try:
@@ -249,6 +253,9 @@ async def handle_new_member_message(
 
     for user in message.new_chat_members:
         if user.is_bot:
+            continue
+        if await _already_welcomed(redis, message.chat.id, user.id):
+            logger.debug("Skipping duplicate welcome (message path)", extra={"chat_id": message.chat.id, "user_id": user.id})
             continue
         try:
             member_summary = await zealy_service.get_member_summary(session, user.id)
@@ -407,3 +414,16 @@ async def _send_links_block(
 
     text = render_links_block(links)
     await callback.message.answer(text, parse_mode=ParseMode.MARKDOWN_V2, disable_web_page_preview=True)
+async def _already_welcomed(redis: Redis | None, chat_id: int, user_id: int) -> bool:
+    """
+    Guard against duplicate welcomes when both chat_member and new_chat_members fire.
+    Returns True if the user has already been welcomed recently.
+    """
+    if redis is None:
+        return False
+    key = f"welcome:sent:{chat_id}:{user_id}"
+    was_created = await redis.setnx(key, "1")
+    if was_created:
+        await redis.expire(key, WELCOME_DEDUP_TTL)
+        return False
+    return True
