@@ -6,6 +6,7 @@ from decimal import Decimal
 from typing import Any, Callable
 
 from redis.asyncio import Redis
+from redis.exceptions import RedisError
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -36,14 +37,20 @@ class ContentService:
 
     async def _get_cached(self, key: str, loader: Callable[[], Any]) -> Any:
         if self._redis is not None:
-            cached = await self._redis.get(key)
+            try:
+                cached = await self._redis.get(key)
+            except RedisError:
+                cached = None
             if cached:
                 return json.loads(cached)
 
         result = await loader()
 
         if self._redis is not None and result is not None:
-            await self._redis.set(key, json.dumps(result), ex=CACHE_TTL_SECONDS)
+            try:
+                await self._redis.set(key, json.dumps(result), ex=CACHE_TTL_SECONDS)
+            except RedisError:
+                pass
 
         return result
 
