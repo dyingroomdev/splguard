@@ -1,13 +1,10 @@
 from __future__ import annotations
 
-import html
-
 from aiogram import Router, types
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ...config import settings
-from ...services import zealy as zealy_service
 
 router = Router(name="presale-info")
 
@@ -18,15 +15,8 @@ async def handle_presale_info(
     session: AsyncSession,
     redis: Redis | None,
 ) -> None:
-    title_line = ""
-    if callback.from_user:
-        summary = await zealy_service.get_member_summary(session, callback.from_user.id)
-        if summary and summary.get("title"):
-            title_line = f"🏷️ <b>Title:</b> {html.escape(summary['title'])}\n"
-
     text = (
         "<b>📊 TDL Presale Information</b>\n\n"
-        f"{title_line}"
         "💠 <b>Ticker:</b> $TDL\n"
         f"📜 <b>Contract Address:</b> <code>{settings.tdl_mint}</code>\n"
         "💰 <b>Buy:</b> <a href='https://presale.splshield.com/'>https://presale.splshield.com/</a>\n"

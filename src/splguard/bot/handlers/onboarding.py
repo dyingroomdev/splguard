@@ -12,7 +12,6 @@ from redis.exceptions import RedisError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ...metrics import increment as metrics_increment
-from ...services import zealy as zealy_service
 from ...services.content import ContentService
 from ...services.moderation import ModerationService
 from ...services.presale import PresaleService
@@ -113,13 +112,6 @@ def _welcome_text(username: str | None, title: str | None) -> str:
             "🚀 <b>Quick commands</b>",
             "• Use <code>/commands</code> to explore the bot",
             "• Only trust links shared by SPL Shield admins",
-            "",
-            "🏅 <b>Zealy quests</b>",
-            "• <code>/link &lt;wallet&gt;</code> bind your wallet",
-            "• <code>/quests</code> browse available quests",
-            "• <code>/xp</code> check your progress",
-            "• <code>/tier</code> view perks and status",
-            "• <code>/submit &lt;txSig&gt;</code> verify presale buys",
         ]
     )
     return "\n".join(lines)
@@ -172,14 +164,7 @@ async def handle_member_update(
 
     presale_url = summary.primary_link if summary else None
 
-    try:
-        member_summary = await zealy_service.get_member_summary(session, user.id)
-    except Exception:
-        logger.exception("Failed to load member summary for %s", user.id)
-        member_summary = None
     member_title = None
-    if member_summary and member_summary.get("title"):
-        member_title = member_summary["title"]
 
     text = _welcome_text(user.full_name, member_title)
     message = await bot.send_message(
@@ -258,14 +243,7 @@ async def handle_new_member_message(
         if await _already_welcomed(redis, message.chat.id, user.id):
             logger.debug("Skipping duplicate welcome (message path)", extra={"chat_id": message.chat.id, "user_id": user.id})
             continue
-        try:
-            member_summary = await zealy_service.get_member_summary(session, user.id)
-        except Exception:
-            logger.exception("Failed to load member summary for %s (message path)", user.id)
-            member_summary = None
         member_title = None
-        if member_summary and member_summary.get("title"):
-            member_title = member_summary["title"]
         text = _welcome_text(user.full_name, member_title)
         await bot.send_message(
             chat_id=message.chat.id,

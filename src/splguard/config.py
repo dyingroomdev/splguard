@@ -44,15 +44,6 @@ class Settings(BaseSettings):
     presale_api_url: str | None = Field(default=None, alias="PRESALE_API_URL")
     presale_refresh_seconds: int = Field(default=60, alias="PRESALE_REFRESH_SECONDS")
 
-    zealy_api_key: str | None = Field(default=None, alias="ZEALY_API_KEY")
-    zealy_community_id: str | None = Field(default=None, alias="ZEALY_COMMUNITY_ID")
-    zealy_base_url: str = Field(default="https://api.zealy.io", alias="ZEALY_BASE_URL")
-    zealy_enabled: bool = Field(default=False, alias="ZEALY_ENABLED")
-    zealy_webhook_token: str | None = Field(default=None, alias="ZEALY_WEBHOOK_TOKEN")
-    zealy_presale_quest_id: str | None = Field(default=None, alias="ZEALY_PRESALE_QUEST_ID")
-    zealy_presale_quest_slug: str | None = Field(default=None, alias="ZEALY_PRESALE_QUEST_SLUG")
-    zealy_presale_xp_reward: int = Field(default=0, alias="ZEALY_PRESALE_XP_REWARD")
-
     solana_rpc_url: str | None = Field(default=None, alias="SOLANA_RPC_URL")
     tdl_mint: str | None = Field(default=None, alias="TDL_MINT")
     tdl_supply_display: str | None = Field(default=None, alias="TDL_SUPPLY_DISPLAY")
