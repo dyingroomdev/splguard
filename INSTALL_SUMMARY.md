@@ -102,7 +102,7 @@ alembic upgrade head
 The bot comes with all features already configured:
 
 ### ✓ Commands Working
-- `/help` - Links to support bot (@splsupportbot)
+- `/help` - Links to support bot (@splshieldhelpbot)
 - `/team` - Shows 3 team members with full bios
 - `/contract` - Displays $TDL contract information
 - `/presale` - Shows presale details (Oct 26, 2025, 6 PM UTC)
@@ -257,8 +257,8 @@ cp splguard.db splguard.db.backup.$(date +%Y%m%d_%H%M%S)
 ## 📞 Support
 
 - **Documentation**: See [DEPLOYMENT.md](DEPLOYMENT.md)
-- **Support Bot**: [@splsupportbot](https://t.me/splsupportbot)
-- **Community**: [@splshield](https://t.me/splshield)
+- **Support Bot**: [@splshieldhelpbot](https://t.me/splshieldhelpbot)
+- **Community**: [@splshieldofficial](https://t.me/splshieldofficial)
 
 ## 🎊 You're All Set!
 

@@ -330,8 +330,8 @@ Admin commands (only for configured admins):
 ## 📞 Support
 
 - **Documentation**: [docs.splshield.com](https://docs.splshield.com)
-- **Support Bot**: [@splsupportbot](https://t.me/splsupportbot)
-- **Community**: [@splshield](https://t.me/splshield)
+- **Support Bot**: [@splshieldhelpbot](https://t.me/splshieldhelpbot)
+- **Community**: [@splshieldofficial](https://t.me/splshieldofficial)
 
 ## 📄 License
 

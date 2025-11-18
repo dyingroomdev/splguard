@@ -35,7 +35,7 @@ async def populate_data():
                     "Twitter": "https://twitter.com/splshield",
                     "Risk Scanner App": "https://app.splshield.com/",
                     "Dapp": "https://ex.splshield.com",
-                    "Telegram": "https://t.me/splshield",
+                    "Telegram": "https://t.me/splshieldofficial",
                 }
             )
             session.add(settings)
@@ -58,7 +58,7 @@ async def populate_data():
                     settings_id=settings.id,
                     name="Aragorn",
                     role="Lead Developer",
-                    contact="@aragornspl",
+                    contact="@aragornofficial",
                     bio="Building SPL Shield's AI Risk Engine and overseeing the TDL ecosystem's core smart contracts.",
                     display_order=1
                 ),

@@ -64,7 +64,7 @@ async def handle_help(message: Message, session: AsyncSession, redis: Redis | No
 
     # Add support bot button
     keyboard = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="🆘 Contact Support", url="https://t.me/splsupportbot")]
+        [InlineKeyboardButton(text="🆘 Contact Support", url="https://t.me/splshieldhelpbot")]
     ])
 
     await message.answer(intro, parse_mode=ParseMode.MARKDOWN_V2, reply_markup=keyboard)

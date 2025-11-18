@@ -18,7 +18,7 @@ INITIAL_SETTINGS = {
     "docs": "https://docs.splshield.com/",
     "social_links": {
         "twitter": "https://x.com/splshield",
-        "telegram": "https://t.me/splshield",
+        "telegram": "https://t.me/splshieldofficial",
         "github": "https://github.com/splshiled",
     },
     "logo": "https://cdn.splshield.com/logo.png",
@@ -28,7 +28,7 @@ INITIAL_TEAM = [
     {
         "name": "Aragorn",
         "role": "Lead Developer",
-        "contact": "@aragornspl",
+        "contact": "@aragornofficial",
         "avatar_url": "https://cdn.splshield.com/avatars/aragorn.png",
         "display_order": 1,
     },

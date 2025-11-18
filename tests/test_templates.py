@@ -16,7 +16,7 @@ def _assert_line_lengths(text: str) -> None:
 def test_team_cards_escape_markdown() -> None:
     message = render_team_cards(
         [
-            {"name": "Aragorn *Lead*", "role": "Project Lead", "contact": "@aragorn_spl"},
+            {"name": "Aragorn *Lead*", "role": "Project Lead", "contact": "@aragornofficial"},
         ]
     )
 
