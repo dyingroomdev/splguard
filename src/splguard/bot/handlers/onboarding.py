@@ -97,10 +97,6 @@ def _welcome_text(username: str | None, title: str | None) -> str:
     lines.extend(
         [
             "",
-            "⚡️ <b>What we do</b>",
-            "• AI-powered Solana risk scanning",
-            "• Real-time presale monitoring",
-            "",
             "💎 <b>Token Essentials</b>",
             "• <b>Presale:</b> LIVE now — check the pinned message to learn more",
             "• <b>Ends:</b> <i>5 Jan 2026</i>",
