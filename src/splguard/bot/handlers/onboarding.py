@@ -8,6 +8,7 @@ from aiogram import Router
 from aiogram.enums import ChatMemberStatus, ChatType, ParseMode
 from aiogram.types import CallbackQuery, ChatMemberUpdated, InlineKeyboardButton, InlineKeyboardMarkup, Message
 from redis.asyncio import Redis
+from redis.exceptions import RedisError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ...metrics import increment as metrics_increment
@@ -422,8 +423,15 @@ async def _already_welcomed(redis: Redis | None, chat_id: int, user_id: int) -> 
     if redis is None:
         return False
     key = f"welcome:sent:{chat_id}:{user_id}"
-    was_created = await redis.setnx(key, "1")
+    try:
+        was_created = await redis.setnx(key, "1")
+    except RedisError as exc:
+        logger.warning("Failed to set welcome dedupe key in redis: %s", exc)
+        return False
     if was_created:
-        await redis.expire(key, WELCOME_DEDUP_TTL)
+        try:
+            await redis.expire(key, WELCOME_DEDUP_TTL)
+        except RedisError as exc:
+            logger.debug("Unable to set TTL for welcome dedupe key: %s", exc)
         return False
     return True
