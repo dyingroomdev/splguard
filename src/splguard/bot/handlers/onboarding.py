@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import html
 import logging
+from time import monotonic
 from typing import Any
 
 from aiogram import Router
@@ -21,6 +22,8 @@ from ...utils import markdown as md
 logger = logging.getLogger(__name__)
 router = Router(name="onboarding")
 WELCOME_DEDUP_TTL = 900  # seconds
+
+_welcome_memory_cache: dict[tuple[int, int], float] = {}
 
 
 def _coerce_status(value: ChatMemberStatus | str | None) -> ChatMemberStatus | None:
@@ -398,14 +401,26 @@ async def _already_welcomed(redis: Redis | None, chat_id: int, user_id: int) -> 
     Guard against duplicate welcomes when both chat_member and new_chat_members fire.
     Returns True if the user has already been welcomed recently.
     """
-    if redis is None:
+    def _memory_check() -> bool:
+        now = monotonic()
+        cutoff = now - WELCOME_DEDUP_TTL
+        expired = [key for key, ts in _welcome_memory_cache.items() if ts < cutoff]
+        for key in expired:
+            _welcome_memory_cache.pop(key, None)
+        key_tuple = (chat_id, user_id)
+        if key_tuple in _welcome_memory_cache:
+            return True
+        _welcome_memory_cache[key_tuple] = now
         return False
+
+    if redis is None:
+        return _memory_check()
     key = f"welcome:sent:{chat_id}:{user_id}"
     try:
         was_created = await redis.setnx(key, "1")
     except RedisError as exc:
         logger.warning("Failed to set welcome dedupe key in redis: %s", exc)
-        return False
+        return _memory_check()
     if was_created:
         try:
             await redis.expire(key, WELCOME_DEDUP_TTL)
