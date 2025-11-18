@@ -258,7 +258,7 @@ cp splguard.db splguard.db.backup.$(date +%Y%m%d_%H%M%S)
 
 - **Documentation**: See [DEPLOYMENT.md](DEPLOYMENT.md)
 - **Support Bot**: [@splshieldhelpbot](https://t.me/splshieldhelpbot)
-- **Community**: [@splshieldofficial](https://t.me/splshieldofficial)
+- **Community**: [@SPLShieldOfficial](https://t.me/SPLShieldOfficial)
 
 ## 🎊 You're All Set!
 

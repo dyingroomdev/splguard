@@ -49,7 +49,7 @@ def _welcome_keyboard(payload: dict[str, Any] | None, presale_url: str | None) -
     docs_url = data.get("docs")
     social_links = data.get("social_links") or {}
     twitter_url = social_links.get("Twitter") or "https://twitter.com/splshield"
-    risk_bot_url = social_links.get("Risk Scanner App") or "t.me/splshieldofficialbot"
+    risk_bot_url = social_links.get("Risk Scanner App") or "https://t.me/splshieldofficialbot"
 
     buttons: list[list[InlineKeyboardButton]] = []
 
@@ -72,7 +72,7 @@ def _welcome_keyboard(payload: dict[str, Any] | None, presale_url: str | None) -
 
     buttons.append([
         InlineKeyboardButton(text="🆘 Support", url="https://t.me/splshieldhelpbot"),
-        InlineKeyboardButton(text="🤖 Risk Scanner Bot", url=risk_bot_url or "t.me/splshieldofficialbot"),
+        InlineKeyboardButton(text="🤖 Risk Scanner Bot", url=risk_bot_url or "https://t.me/splshieldofficialbot"),
     ])
 
     buttons.append([

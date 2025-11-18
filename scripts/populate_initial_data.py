@@ -35,7 +35,7 @@ async def populate_data():
                     "Twitter": "https://twitter.com/splshield",
                     "Risk Scanner App": "https://app.splshield.com/",
                     "Dapp": "https://ex.splshield.com",
-                    "Telegram": "https://t.me/splshieldofficial",
+                    "Telegram": "https://t.me/SPLShieldOfficial",
                 }
             )
             session.add(settings)

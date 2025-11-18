@@ -331,7 +331,7 @@ Admin commands (only for configured admins):
 
 - **Documentation**: [docs.splshield.com](https://docs.splshield.com)
 - **Support Bot**: [@splshieldhelpbot](https://t.me/splshieldhelpbot)
-- **Community**: [@splshieldofficial](https://t.me/splshieldofficial)
+- **Community**: [@SPLShieldOfficial](https://t.me/SPLShieldOfficial)
 
 ## 📄 License
 

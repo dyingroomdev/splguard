@@ -33,7 +33,7 @@ Updated the welcome message and keyboard layout with new links, buttons, and hel
 
 **Row 3: Support & Tools**
 - 🆘 Support → @splshieldhelpbot
-- 🤖 Risk Scanner Bot → @splshieldbot
+- 🤖 Risk Scanner Bot → @splshieldofficialbot
 
 **Row 4: Platform Links**
 - 🔷 Dapp → https://ex.splshield.com
@@ -79,7 +79,7 @@ second_row = [
 # Row 3: Support and Risk Scanner Bot
 third_row = [
     InlineKeyboardButton(text="🆘 Support", url="https://t.me/splshieldhelpbot"),
-    InlineKeyboardButton(text="🤖 Risk Scanner Bot", url="t.me/splshieldofficialbot"),
+    InlineKeyboardButton(text="🤖 Risk Scanner Bot", url="https://t.me/splshieldofficialbot"),
 ]
 
 # Row 4: Dapp and Twitter
@@ -131,7 +131,7 @@ Row 4: [🔷 Dapp] [🐦 Twitter]
 ### Direct URL Links (work immediately)
 1. ✅ Website: https://splshield.com/
 2. ✅ Support Bot: https://t.me/splshieldhelpbot
-3. ✅ Risk Scanner Bot: t.me/splshieldofficialbot
+3. ✅ Risk Scanner Bot: https://t.me/splshieldofficialbot
 4. ✅ Dapp: https://ex.splshield.com
 5. ✅ Twitter: https://twitter.com/splshield
 

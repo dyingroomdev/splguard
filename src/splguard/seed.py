@@ -18,7 +18,7 @@ INITIAL_SETTINGS = {
     "docs": "https://docs.splshield.com/",
     "social_links": {
         "twitter": "https://x.com/splshield",
-        "telegram": "https://t.me/splshieldofficial",
+        "telegram": "https://t.me/SPLShieldOfficial",
         "github": "https://github.com/splshiled",
     },
     "logo": "https://cdn.splshield.com/logo.png",
